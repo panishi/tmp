@@ -1,0 +1,468 @@
+\documentclass[11pt, a4paper]{jsarticle}
+
+\usepackage{amsmath, amssymb, amsthm}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\FP}{\textbf{FP}}
+\newcommand{\PS}{\textbf{PS}}
+\newcommand{\BC}{\textbf{BC}}
+\newcommand{\BP}{\textbf{BP}}
+
+\newtheorem{assumption}{Assumption}[section]
+\newtheorem{proposition}[assumption]{Proposition}
+\newtheorem{theorem}[assumption]{Theorem}
+\newtheorem{exercise}{Exercise}[section]
+
+\begin{document}
+
+\setcounter{section}{1}
+\section{Vanilla interest rate options and forward measure}
+\begin{assumption}
+リスク中立測度$Q$が存在して，価格$V$が
+\begin{align}
+V(t)
+& =
+B(t) \E_Q \Bigl[ \frac{V(T)}{B(T)} \Bigl| \mathcal{F}_t \Bigr] \nonumber
+\end{align}
+と表されることを仮定する．
+\end{assumption}
+
+\subsection{Change of numeraire}
+$A$をニューメレールとする．
+
+\begin{proposition}
+\begin{align}
+V(t)
+& =
+A(t) \E_{P_A} \Bigl[ \frac{V(T)}{A(T)} \Bigl| \mathcal{F}_t \Bigr] \nonumber
+\end{align}
+\end{proposition}
+
+\begin{proof}
+$A(t) / B(t)$は$Q$-マルチンゲールなので
+\begin{align}
+\E_Q \Bigl[ \frac{A(T)}{B(T)} \Bigr]
+& =
+\frac{A(0)}{B(0)} = A(0) \nonumber
+\end{align}
+
+よって
+\begin{align}
+\frac{d P_A}{d Q}
+& =
+\frac{1}{A(0)} \frac{A(T)}{B(T)} \nonumber
+\end{align}
+によって確率測度$P_A$を定められる．
+
+マルチンゲール性より
+\begin{align}
+\frac{d P_A}{d Q} \Bigr|_t
+& =
+\E_Q \Bigl[ \frac{d P_A}{d Q} \Big| \mathcal{F}_t \Bigr]
+= \frac{1}{A(0)} \frac{A(t)}{B(t)} \nonumber
+\end{align}
+
+条件付期待値についてのベイズの定理より
+\begin{align}
+\E_Q \Bigl[ X \frac{d P_A}{d Q} \Bigl| \mathcal{F}_t \Bigr]
+& =
+\frac{d P_A}{d Q} \Bigr|_t \E_{P_A} [X | \mathcal{F}_t] \nonumber
+\end{align}
+
+ゆえに
+\begin{align}
+V(t)
+& =
+B(t) \E_Q \Bigl[ \frac{V(T)}{B(T)} \Bigl| \mathcal{F}_t \Bigr] \nonumber \\
+& =
+A(0) B(t) \E_Q \Bigl[ \frac{V(T)}{A(T)} \frac{d P_A}{d Q} \Bigl| \mathcal{F}_t \Bigr] \nonumber \\
+& =
+A(0) B(t) \frac{d P_A}{d Q} \Bigr|_t \E_{P_A} \Bigl[ \frac{V(T)}{A(T)} \Bigl| \mathcal{F}_t \Bigr] \nonumber \\
+& =
+A(t) \E_{P_A} \Bigl[ \frac{V(T)}{A(T)} \Bigl| \mathcal{F}_t \Bigr] \nonumber
+\end{align}
+\end{proof}
+
+\hrulefill
+\begin{exercise}
+$t=0$とおくと
+\begin{align}
+V(0)
+& =
+A(0) \E_{P_A} \Bigl[ \frac{X}{A(T)} \Bigr] \nonumber
+\end{align}
+\end{exercise}
+\hrulefill \\
+
+\subsection{Forward measure}
+ニューメレールは$B(t, T)$．
+\begin{align}
+\frac{d P_T}{d Q}
+& =
+\frac{1}{B(0, T)} \frac{B(T, T)}{B(T)}
+= \frac{1}{B(0, T) B(T)} \nonumber
+\end{align}
+
+\begin{align}
+\frac{d P_T}{d Q} \Bigr|_t
+& =
+\frac{1}{B(0, T)} \frac{B(t, T)}{B(t)}
+= \frac{B(t, T)}{B(0, T) B(t)} \nonumber
+\end{align}
+
+\hrulefill
+\begin{exercise}
+$S \leq T$のとき
+\begin{align}
+\frac{dP_S}{dP_T}
+& =
+\frac{dP_S}{dQ} \Bigl/ \frac{dP_T}{dQ} \Bigr|_S
+= \frac{B(0, T)}{B(0, S)} \frac{1}{B(S, T)} \nonumber
+\end{align}
+
+$S \geq T$のとき
+\begin{align}
+\frac{dP_S}{dP_T}
+& =
+\frac{dP_S}{dQ} \Bigr|_T \Bigl/ \frac{dP_T}{dQ}
+= \frac{B(0, T)}{B(0, S)} B(S, T) \nonumber
+\end{align}
+\end{exercise}
+\hrulefill \\
+
+$T$時点のペイオフ$X$に対して
+\begin{align}
+B(t) \E_Q \Bigl[ \frac{X}{B(T)} \Bigl| \mathcal{F}_t \Bigr]
+& =
+B(t, T) \E_{P_T} \Bigl[ \frac{X}{B(T, T)} \Bigl| \mathcal{F}_t \Bigr]
+= B(t, T) \E_{P_T} [ X | \mathcal{F}_t ] \nonumber
+\nonumber
+\end{align}
+
+上記の一般化として，$S \leq T$と$S$時点のペイオフ$X$に対して
+\begin{align}
+B(t) \E_Q \Bigl[ \frac{B(S, T)}{B(S)} X \Bigl| \mathcal{F}_t \Bigr]
+& =
+B(0, T) B(t) \E_Q \Bigl[ X \frac{d P_T}{d Q} \Bigr|_S \Bigl| \mathcal{F}_t \Bigr] \nonumber \\
+& =
+B(0, T) B(t) \E_Q \Bigl[ X \frac{d P_T}{d Q} \Bigl| \mathcal{F}_t \Bigr] \nonumber \\
+& =
+B(0, T) B(t) \frac{d P_T}{d Q} \Bigr|_t \E_{P_T} [ X | \mathcal{F}_t ] \nonumber \\
+& =
+B(t, T) \E_{P_T} [ X | \mathcal{F}_t ] \nonumber
+\nonumber
+\end{align}
+
+以下では，$B(t, T)$が以下のSDEに従うと仮定する．
+\begin{align}
+\frac{d B(t, T)}{B(t, T)}
+& =
+r(t) dt + \Sigma(t, T) dW(t), \nonumber \\
+B(T, T)
+& =
+1 \nonumber
+\end{align}
+
+\hrulefill
+\begin{exercise}
+$B(t, T) / B(t)$はマルチンゲールなので，ドリフトが$\mathrm{0}$である．
+そのためこの伊藤微分を計算したい．
+伊藤の商の公式を使っても良いが，計算を楽にするために対数を取る．
+\begin{align}
+d \log \frac{B(t, T)}{B(t)}
+& =
+\Bigl( \mu(t, T) - \frac{1}{2} \Sigma(t, T)^2 - r(t) \Bigr) dt + \Sigma(t, T) dW(t) \nonumber
+\end{align}
+
+これより
+\begin{align}
+d \frac{B(t, T)}{B(t)}
+& =
+\frac{B(t, T)}{B(t)} \Bigl\{ \Bigl( \mu(t, T) - r(t) \Bigr) dt + \Sigma(t, T) dW(t) \Bigr\} \nonumber
+\end{align}
+
+よって，$\mu(t, T) = r(t)$である．
+\end{exercise}
+\hrulefill \\
+
+\hrulefill
+\begin{exercise}
+\begin{align}
+B(t, T)
+& =
+B(0, T) \exp \Bigl( \int_0^t \Bigl( r(u) - \frac{1}{2} \Sigma(u, T)^2 \Bigr) du + \int_0^t \Sigma(u, T) dW(u) \Bigr) \nonumber
+\end{align}
+
+$B(T, T) = 1$より
+\begin{align}
+B(0, T)
+& =
+\exp \Bigl( -\int_0^T \Bigl( r(u) - \frac{1}{2} \Sigma(u, T)^2 \Bigr) du - \int_0^T \Sigma(u, T) dW(u) \Bigr) \nonumber
+\end{align}
+
+よって
+\begin{align}
+B(t, T)
+& =
+\exp \Bigl( -\int_t^T \Bigl( r(u) - \frac{1}{2} \Sigma(u, T)^2 \Bigr) du - \int_t^T \Sigma(u, T) dW(u) \Bigr) \nonumber
+\end{align}
+\end{exercise}
+\hrulefill \\
+
+\hrulefill
+\begin{exercise}
+\begin{align}
+d \frac{B(t, T)}{B(t)}
+& =
+\frac{B(t, T)}{B(t)} \Sigma(t, T) dW(t) \nonumber
+\end{align}
+より
+\begin{align}
+d \xi(t)
+& =
+\xi(t) \Sigma(t, T) dW(t) \nonumber
+\end{align}
+\end{exercise}
+\hrulefill \\
+
+$\xi(0) = 1$より
+\begin{align}
+\xi(t)
+& =
+\exp \Bigl( \int_0^t \Sigma(u, T) dW(u) - \frac{1}{2} \int_0^t \Sigma(u, T)^2 du \Bigr) \nonumber
+\end{align}
+
+\begin{proposition}
+\begin{align}
+\frac{dP_T}{dQ}
+& =
+\exp \Bigl( \int_0^T \Sigma(u, T) dW(u) - \frac{1}{2} \int_0^T \Sigma(u, T)^2 du \Bigr) \nonumber
+\end{align}
+\end{proposition}
+
+\hrulefill
+\begin{exercise}
+$\xi$は
+\begin{align}
+d \xi(t)
+& =
+\xi(t) \sum_{i=1}^n \Sigma_i(t, T) dW_i(t) \nonumber
+\end{align}
+を満たす．
+
+よって
+\begin{align}
+\xi(t)
+& =
+\exp \Bigl( \sum_{i=1}^n \int_0^t \Sigma_i(u, T) dW_i(u) - \frac{1}{2} \sum_{i=1}^n \int_0^t \Sigma_i(u, T)^2 du \Bigr), \nonumber \\
+\frac{dP_T}{dQ}
+& =
+\exp \Bigl( \sum_{i=1}^n \int_0^T \Sigma_i(u, T) dW_i(u) - \frac{1}{2} \sum_{i=1}^n \int_0^T \Sigma_i(u, T)^2 du \Bigr) \nonumber
+\end{align}
+\end{exercise}
+\hrulefill \\
+
+\subsection{Forward contract}
+\begin{align}
+V(t)
+& =
+B(t, T) \E_{P_T} [ (X(T) - F(t, T)) | \mathcal{F}_t ]
+= 0 \nonumber
+\end{align}
+
+\begin{align}
+F(t, T)
+& =
+\E_{P_T} [ X(T) | \mathcal{F}_t ] \nonumber
+\end{align}
+
+\subsection{Martingales under the forward measure}
+$\FP(t; S, T)$は$B(S, T)$のフォワードと考えられる．
+\begin{align}
+\FP(t; S, T)
+& =
+\E_{P_S} [ B(S, T) | \mathcal{F}_t ]
+= \E_{P_S} \Bigl[ \frac{B(S, T)}{B(S, S)} \Bigl| \mathcal{F}_t \Bigr] \nonumber \\
+& =
+\frac{B(t, T)}{B(t, S)} \nonumber
+\end{align}
+
+$F(t; S, T)$は$L(S, T)$のフォワードと考えられる．
+\begin{align}
+F(t; S, T)
+& =
+\E_{P_T} [ L(S, T) | \mathcal{F}_t ] \nonumber \\
+& =
+\E_{P_T} \Bigl[ \frac{1}{\tau} \Bigl( \frac{1}{B(S, T)} - 1 \Bigr) | \mathcal{F}_t \Bigr] \nonumber \\
+& =
+\E_{P_T} \Bigl[ \frac{1}{\tau} \Bigl( \frac{B(S, S)}{B(S, T)} - 1 \Bigr) | \mathcal{F}_t \Bigr] \nonumber \\
+& =
+\frac{1}{\tau} \Bigl( \frac{B(t, S)}{B(t, T)} - 1 \Bigr) \nonumber
+\end{align}
+
+\subsection{FRAs and interest rate swaps: the forward measure}
+\begin{align}
+V(t)
+& =
+B(t, T) \E_{P_T} [ \tau (K - L(S, T)) | \mathcal{F}_t ] = 0 \nonumber
+\end{align}
+
+\begin{align}
+V(t)
+& =
+B(t, T) \tau K - B(t, T) \tau F(t; S, T) = 0 \nonumber
+\end{align}
+
+\begin{align}
+\PS(t)
+& =
+\sum_{i=1}^n B(t, T_i) \E_{P_{T_i}} [ \tau_i (L(T_{i-1}, T_i) - K) | \mathcal{F}_t ] \nonumber \\
+& =
+\sum_{i=1}^n B(t, T_i) \tau_i (F(t; T_{i-1}, T_i) - K) \nonumber \\
+& =
+B(t, T_0) - B(t, T_n) - K \sum_{i=1}^n \tau_i B(t, T_i) \nonumber
+\end{align}
+
+\subsection{Option pricing in the forward measure}
+\begin{align}
+\BC(t; S, T, K)
+& =
+B(t) \E_Q \Bigl[ \frac{(B(S, T) - K)_+}{B(S)} \Bigl| \mathcal{F}_t \Bigr] \nonumber \\
+& =
+B(t) \E_Q \Bigl[ \frac{B(S, T)}{B(S)} 1_{\{ B(S, T) \geq K \}} \Bigl| \mathcal{F}_t \Bigr]
+- K B(t) \E_Q \Bigl[ \frac{1}{B(S)} 1_{\{ B(S, T) \geq K \}} \Bigl| \mathcal{F}_t \Bigr] \nonumber \\
+& =
+B(t, T) P_T (B(S, T) \geq K | \mathcal{F}_t) - K B(t, S) P_S (B(S, T) \geq K | \mathcal{F}_t) \nonumber
+\end{align}
+
+\hrulefill
+\begin{exercise}
+\begin{align}
+d \log \FP(t; S, T)
+& =
+\bigl( \Sigma(t, T) - \Sigma(t, S) \bigr) dW(t) - \frac{1}{2} \bigl( \Sigma(t, T)^2 - \Sigma(t, S)^2 \bigr) dt \nonumber
+\end{align}
+より
+\begin{align}
+\frac{d\FP(t; S, T)}{\FP(t; S, T)}
+& =
+\bigl( \Sigma(t, T) - \Sigma(t, S) \bigr) dW(t) + \Sigma(t, S) \bigl( \Sigma(t, S) - \Sigma(t, T) \bigr) dt \nonumber
+\end{align}
+\end{exercise}
+\hrulefill \\
+
+\begin{align}
+\frac{dP_S}{dQ}
+& =
+\exp \Bigl( \int_0^S \Sigma(u, S) dW(u) - \frac{1}{2} \int_0^S \Sigma(u, S)^2 du \Bigr) \nonumber
+\end{align}
+であることとギルザノフの定理より
+\begin{align}
+W^S(t)
+& =
+W(t) - \int_0^t \Sigma(u, S) du \nonumber
+\end{align}
+は$P_S$の下でブラウン運動となる．
+SDEに代入すると
+\begin{align}
+\frac{d\FP(t; S, T)}{\FP(t; S, T)}
+& =
+\bigl( \Sigma(t, T) - \Sigma(t, S) \bigr) dW^S(t) \nonumber
+\end{align}
+$\FP(S; S, T) = B(S, T)$より，このSDEを解くと
+\begin{align}
+B(S, T)
+& =
+\FP(t; S, T)
+\exp \Bigl( \int_t^S \bigl( \Sigma(u, T) - \Sigma(u, S) \bigr) dW^S(u) - \frac{1}{2} \int_t^S \bigl( \Sigma(u, T) - \Sigma(u, S) \bigr)^2 du \Bigr) \nonumber
+\end{align}
+
+\begin{align}
+v(t, S)
+& =
+\int_t^S \bigl( \Sigma(u, T) - \Sigma(u, S) \bigr)^2 du \nonumber
+\end{align}
+とおくと
+\begin{align}
+P_S (B(S, T) \geq K | \mathcal{F}_t)
+& =
+\mathrm{N} (d_-) \nonumber
+\end{align}
+ここで
+\begin{align}
+d_-
+& =
+\frac{1}{\sqrt{v(t, S)}} \Bigl( \log \frac{\FP(t; S, T)}{K} - \frac{1}{2} v(t, S) \Bigr) \nonumber \\
+& =
+\frac{1}{\sqrt{v(t, S)}} \Bigl( \log \frac{B(t, T)}{K B(t, S)} - \frac{1}{2} v(t, S) \Bigr) \nonumber
+\end{align}
+
+\begin{align}
+W^T(t)
+& =
+W(t) - \int_0^t \Sigma(u, T) du \nonumber
+\end{align}
+は$P_T$の下でブラウン運動となる．
+\begin{align}
+W^S(t)
+& =
+W^T(t) + \int_0^t \bigl( \Sigma(u, T) - \Sigma(u, S) \bigr) du \nonumber
+\end{align}
+より
+\begin{align}
+B(S, T)
+& =
+\FP(t; S, T)
+\exp \Bigl( \int_t^S \bigl( \Sigma(u, T) - \Sigma(u, S) \bigr) dW^T(u) + \frac{1}{2} \int_t^S \bigl( \Sigma(u, T) - \Sigma(u, S) \bigr)^2 du \Bigr) \nonumber
+\end{align}
+よって
+\begin{align}
+P_T (B(S, T) \geq K | \mathcal{F}_t)
+& =
+\mathrm{N} (d_+) \nonumber
+\end{align}
+ここで
+\begin{align}
+d_+
+& =
+\frac{1}{\sqrt{v(t, S)}} \Bigl( \log \frac{\FP(t; S, T)}{K} + \frac{1}{2} v(t, S) \Bigr) \nonumber \\
+& =
+\frac{1}{\sqrt{v(t, S)}} \Bigl( \log \frac{B(t, T)}{K B(t, S)} + \frac{1}{2} v(t, S) \Bigr) \nonumber
+\end{align}
+
+\hrulefill
+\begin{exercise}
+$X \sim \mathrm{N} (\mu, \sigma^2)$のとき
+\begin{align}
+P(x_0 e^X \geq K)
+& =
+\mathrm{N} \biggl( \frac{1}{\sigma} \Bigl( \log \frac{x_0}{K} + \mu \Bigr) \biggr) \nonumber
+\end{align}
+となる．
+独立性の補題を用いて，結論を得る．
+\end{exercise}
+\hrulefill \\
+
+\begin{theorem}
+\begin{align}
+\BC(t; S, T, K)
+& =
+B(t, T) \mathrm{N}(d_+) - K B(t, S) \mathrm{N}(d_-) \nonumber
+\end{align}
+\end{theorem}
+
+\hrulefill
+\begin{exercise}
+\begin{align}
+\BP(t; S, T, K)
+& =
+\BC(t; S, T, K) - B(t, T) + K B(t, S) \nonumber \\
+& =
+- B(t, T) \bigl( 1 - \mathrm{N}(d_+) \bigr) + K B(t, S) \bigl( 1 - \mathrm{N}(d_-) \bigr) \nonumber \\
+& =
+- B(t, T) \mathrm{N}(-d_+) + K B(t, S) \mathrm{N}(-d_-) \nonumber
+\end{align}
+\end{exercise}
+\hrulefill \\
+
+\end{document}
