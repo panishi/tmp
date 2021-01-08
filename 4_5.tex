@@ -1,0 +1,108 @@
+\documentclass[11pt,a4paper]{jsarticle}
+
+\usepackage{amsmath,amssymb}
+
+\newcommand{\E}{\mathrm{E}}
+
+\begin{document}
+
+例18
+
+\begin{align}
+F_n (1, \theta)
+& =
+- \log \int_0^1 dx \int_0^1 dy \, \exp ( -n x^2 y^\theta ) \nonumber
+\end{align}
+
+$K(x, y) = x^2 y^\theta$とおく．
+\begin{align}
+F_n (1, \theta)
+& =
+- \log \int_{-\infty}^{\infty} dt \int_0^1 dx \int_0^1 dy \, \exp(-t) \delta \bigl( t - n K(x, y) \bigr) \nonumber \\
+& =
+- \log \int_0^n \frac{dt}{n} \int_0^1 dx \int_0^1 dy \, \exp(-t) \delta \Bigl( \frac{t}{n} - K(x, y) \Bigr) \nonumber
+\end{align}
+
+$2k = (2, \theta), \, h = (0, 0)$より，$\lambda = \min \bigl\{ 1/2, 1/\theta \bigr\}$．
+
+$\theta < 2$のとき．
+$\lambda = 1/2, \, m = 1$より
+\begin{align}
+\frac{1}{(m - 1)! 2^m \prod_{j=1}^m k_j}
+& =
+\frac{1}{2}, \nonumber \\
+\mu_2
+& =
+-\frac{\theta}{2} \nonumber \\
+\delta \bigl( t - K(x, y) \bigr)
+& \simeq
+\frac{1}{2} t^{-1/2} \delta(x) y^{-\theta/2} \nonumber
+\end{align}
+
+$\theta = 2$のとき．
+$\lambda = 1/2, \, m = 2$より
+\begin{align}
+\frac{1}{(m - 1)! 2^m \prod_{j=1}^m k_j}
+& =
+\frac{1}{4}, \nonumber \\
+\delta \bigl( t - K(x, y) \bigr)
+& \simeq
+\frac{1}{4} t^{-1/2} (-\log t) \delta(x) \delta(y) \nonumber
+\end{align}
+
+$\theta > 2$のとき．
+$\lambda = 1/\theta, \, m = 1$より
+\begin{align}
+\frac{1}{(m - 1)! 2^m \prod_{j=1}^m k_j}
+& =
+\frac{1}{\theta}, \nonumber \\
+\mu_2
+& =
+-\frac{2}{\theta} \nonumber \\
+\delta \bigl( t - K(x, y) \bigr)
+& \simeq
+\frac{1}{\theta} t^{1/\theta - 1} x^{-2/\theta} \delta(y) \nonumber
+\end{align}
+
+例19
+
+\begin{align}
+F_n (1, \theta)
+& =
+- \log \int_0^1 dx \int_{\| y \| < 1} dy \, \exp ( -n x^2 \| y \|^2 ) x^{\theta - 1} \nonumber \\
+& =
+- \log \int_0^1 dx \int_0^1 dr \int d \psi \, \exp ( -n x^2 r^2 ) x^{\theta - 1} r^{M - 1} \nonumber
+\end{align}
+
+$K(x, r) = x^2 r^2$とおく．
+$2k = (2, 2), \, h = (\theta - 1, M - 1)$より，$\lambda = \min \bigl\{ \theta/2, M/2 \bigr\}$．
+
+$\theta < M$のとき．
+$\lambda = \theta/2, \, m = 1$より
+\begin{align}
+\frac{1}{(m - 1)! 2^m \prod_{j=1}^m k_j}
+& =
+\frac{1}{2}, \nonumber \\
+\mu_2
+& =
+M - \theta - 1 \nonumber \\
+\delta \bigl( t - K(x, y) \bigr) x^{\theta - 1} r^{M - 1}
+& \simeq
+\frac{1}{2} t^{\theta/2 - 1} \delta(x) r^{M - \theta - 1} \nonumber
+\end{align}
+
+$\theta > M$のとき．
+$\lambda = M/2, \, m = 1$より
+\begin{align}
+\frac{1}{(m - 1)! 2^m \prod_{j=1}^m k_j}
+& =
+\frac{1}{\theta}, \nonumber \\
+\mu_2
+& =
+\theta - M - 1 \nonumber \\
+\delta \bigl( t - K(x, y) \bigr) x^{\theta - 1} r^{M - 1}
+& \simeq
+\frac{1}{2} t^{M/2 - 1} x^{\theta - M - 1} \delta(r) \nonumber
+\end{align}
+
+\end{document}
