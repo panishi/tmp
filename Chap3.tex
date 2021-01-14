@@ -1,0 +1,401 @@
+\documentclass[11pt,a4paper]{jsarticle}
+
+\usepackage{amsmath,amssymb}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\FP}{\textbf{FP}}
+\newcommand{\PS}{\textbf{PS}}
+\newcommand{\BC}{\textbf{BC}}
+\newcommand{\BP}{\textbf{BP}}
+\newcommand{\Berm}{\textbf{Berm}}
+
+\newtheorem{assumption}{Assumption}[section]
+\newtheorem{proposition}[assumption]{Proposition}
+\newtheorem{theorem}[assumption]{Theorem}
+\newtheorem{exercise}{Exercise}[section]
+
+\begin{document}
+
+\setcounter{section}{2}
+\section{Short-rate models}
+\setcounter{subsection}{4}
+\setcounter{assumption}{7}
+\setcounter{exercise}{8}
+\subsection{Hull-White model}
+G2++のために，Hull-Whiteモデルをシフト関数を使って表し直す．
+
+Hull-Whiteモデルは以下のものであった．
+\begin{align}
+dr(t)
+& =
+(\theta(t) - \alpha r(t)) dt + \sigma(t) dW(t) \nonumber
+\end{align}
+
+シフト関数$\varphi$を用いて等価なモデルを表すことができる．
+\begin{align}
+r(t)
+& =
+x(t) + \varphi(t), \nonumber \\
+dx(t)
+& =
+- \alpha x(t) dt + \sigma(t) dW(t), \,\, x(0) = 0 \nonumber
+\end{align}
+
+$\theta$と$\varphi$の関係は以下の通り．
+\begin{align}
+\theta(t)
+& =
+\alpha \varphi(t) + \varphi^{\prime} (t) \nonumber
+\end{align}
+
+SDEの解は
+\begin{align}
+r(s)
+& =
+x(t) e^{-\alpha (s - t)} + \int_t^s \sigma(u) e^{-\alpha (s - u)} d W(u) + \varphi(s) \nonumber \\
+\int_t^T r(s) ds
+& =
+x(t) D_\alpha (t, T) + \int_t^T \sigma(u) D_\alpha (u, T) d W(u) + \int_t^T \varphi(s) ds \nonumber
+\end{align}
+
+債券価格は
+\begin{align}
+B(t, T)
+& =
+\exp \Bigl( -x(t) D_\alpha (t, T) + \frac{1}{2} V(t, T) - \int_t^T \varphi(s) ds \Bigr) \nonumber \\
+V(t, T)
+& =
+\int_t^T \sigma(u)^2 D_\alpha (u, T)^2 du \nonumber
+\end{align}
+
+初期イールドを考えると
+\begin{align}
+B(0, T)
+& =
+\exp \Bigl( \frac{1}{2} V(0, T) - \int_0^T \varphi(s) ds \Bigr) \nonumber \\
+f (0, T)
+& =
+- \frac{\partial \log B(0, T)}{\partial T}
+= -\frac{1}{2} \frac{\partial V(0, T)}{\partial T} + \varphi(T) \nonumber
+\end{align}
+
+$\varphi$の積分値は
+\begin{align}
+\int_t^T \varphi(s) ds
+& =
+\log \frac{B(0, t)}{B(0, T)} + \frac{1}{2} (V(0, T) - V(0, t)) \nonumber
+\end{align}
+
+これにより，債券価格は$\varphi$を用いずに以下のように表される．
+\begin{align}
+B(t, T)
+& =
+\frac{B(0, T)}{B(0, t)}
+\exp \Bigl( -x(t) D_\alpha (t, T) - \frac{1}{2} (V(0, T) - V(0, t) - V(t, T)) \Bigr) \nonumber
+\end{align}
+
+債券コールオプション価格は
+\begin{align}
+\BC(t; S, T, K)
+& =
+B(t, T) \mathrm{N}(d_+) - K B(t, S) \mathrm{N}(d_-) \nonumber \\
+d_\pm
+& =
+\frac{1}{\sqrt{v(t, S)}} \Bigl( \log \frac{B(t, T)}{B(t, S) K} \pm \frac{1}{2} v(t, S) \Bigr), \nonumber \\
+v(t, S)
+& =
+D_\alpha (S, T)^2 \int_t^S \sigma(u)^2 e^{-2\alpha (S - u)} du \nonumber \\
+& =
+\sigma^2 D_\alpha (S, T)^2 D_{2\alpha} (t, S) \nonumber
+\end{align}
+
+\subsection{Bermudan swaptions in the Hull-White model}
+Section 2.6の結果より
+\begin{align}
+W^T(t)
+& =
+W(t) - \int_0^T \Sigma(u, T) du \nonumber
+\end{align}
+
+\hrulefill
+\begin{exercise}
+$r(t)$による$B(t, T)$の表現より
+\begin{align}
+\frac{d B(t, T)}{B(t, T)}
+& =
+\cdots dt - D(t, T) d r(t) \nonumber \\
+& =
+\cdots dt - \sigma(t) D(t, T) d W(t) \nonumber
+\end{align}
+
+よって，$\Sigma(t, T) = -\sigma(t) D(t, T)$より
+\begin{align}
+d r(t)
+& =
+\bigl( \theta(t) - \alpha r(t) \bigr) dt + \sigma(t) \bigl( dW^T (t) + \Sigma(t, T) dt \bigr) \nonumber \\
+& =
+\bigl( \theta(t) - \alpha r(t) - \sigma (t)^2 D(t, T) \bigr) dt + \sigma(t) dW^T (t) \nonumber
+\end{align}
+\end{exercise}
+\hrulefill \\
+
+$P_T$の下では
+\begin{align}
+r(T)
+& =
+\bigl( r(t) - f(0, t) \bigr) e^{-\alpha (T - t)} + f(0, T) \nonumber \\
+& \hspace{10pt}
++ \int_0^t \sigma(u)^2 \bigl( D(u, T) - D(u, t) \bigr) e^{-\alpha (T - u)} du
++ \int_t^T \sigma(u) e^{-\alpha (T - u)} d W^T (u) \nonumber
+\end{align}
+
+バミューダンスワップションが$T_i \, (i < l)$でまだ行使されていなければ，
+オプション所有者はオプションを保持し続けるか行使するかを判定する．
+行使価値は$\mathrm{E}(T_i) = \bigl( \PS(T_i) \bigr)_+$である．
+$T_i$で行使するのが最適かどうかは，$T_{i+1}$まで保持する価値（継続価値）$\mathrm{C}(T_i)$に依存する．
+よって，$T_i$でのバミューダンスワップションの価値は
+\begin{align}
+\Berm(T_i)
+& =
+\max \bigl( \mathrm{E}(T_i), \mathrm{C}(T_i) \bigr), \nonumber \\
+\mathrm{C}(T_i)
+& =
+B(T_i, T_{i+1}) \E_{P_{T_{i+1}}} \bigl[ \Berm(T_{i+1}) | \mathcal{F}_{T_i} \bigr] \nonumber
+\end{align}
+
+$s > t$に対して
+\begin{align}
+\mathrm{Corr} \bigl( r(t), r(s) \bigr)
+& =
+\frac{\int_0^t \sigma(u)^2 e^{-\alpha (t + s - 2u)} du}
+{\sqrt{\int_0^t \sigma(u)^2 e^{-2\alpha (t - u)} du \int_0^s \sigma(u)^2 e^{-2\alpha (s - u)} du}} \nonumber
+\end{align}
+ボラティリティが定数だとすると
+\begin{align}
+\mathrm{Corr} \bigl( r(t), r(s) \bigr)
+& =
+\sqrt{\frac{e^{2 \alpha t} - 1}{e^{2 \alpha s} - 1}} \nonumber
+\end{align}
+平均回帰パラメータ$\alpha$が増加すると自己相関が減少する．
+これはエキゾチック商品のプライシングに大きな影響を及ぼす．
+
+数値計算のため，短期金利の領域を$N + 1$個に分割する．
+$r_0 < r_1 < \cdots < r_N$とし，$r(0)$は中点に位置するとする．
+$T_{i+1}$でのバミューダンの価値$\Berm \bigl(T_{i+1}; r(T_{i+1}) \bigr)$が各グリッド$r(T_{i+1}) = r_j$において既知であるとし，
+$T_i$でのバミューダンの価値$\Berm \bigl(T_i; r(T_i) \bigr)$を各グリッド$r(T_i) = r_j$で求める．
+$T_i$での継続価値は
+\begin{align}
+\mathrm{C} \bigl( T_i; r(T_i) \bigr)
+& =
+B(T_i, T_{i+1}) \E_{P_{T_{i+1}}} \bigl[ \Berm \bigl( T_{i+1}; r(T_{i+1}) \bigr) | \mathcal{F}_{T_i} \bigr] \nonumber
+\end{align}
+ここで
+\begin{align}
+r(T_{i+1})
+& =
+\bigl( r(T_i) - f(0, T_i) \bigr) e^{-\alpha (T_{i+1} - T_i)} + f(0, T_{i+1}) \nonumber \\
+& \hspace{10pt}
++ \int_0^{T_i} \sigma(u)^2 \bigl( D(u, T_{i+1}) - D(u, T_i) \bigr) e^{-\alpha (T_{i+1} - u)} du \nonumber \\
+& \hspace{10pt}
++ \int_{T_i}^{T_{i+1}} \sigma(u) e^{-\alpha (T_{i+1} - u)} d W^{T_{i+1}} (u) \nonumber \\
+& =
+m_i + \int_{T_i}^{T_{i+1}} \sigma(u) e^{-\alpha (T_{i+1} - u)} d W^{T_{i+1}} (u) \nonumber
+\end{align}
+確率積分の項の分散を
+\begin{align}
+s_i^2
+& =
+\int_{T_i}^{T_{i+1}} \sigma(u)^2 e^{-2\alpha (T_{i+1} - u)} du \nonumber
+\end{align}
+とおくと
+\begin{align}
+\E_{P_{T_{i+1}}} \bigl[ \Berm \bigl( T_{i+1}; r(T_{i+1}) \bigr) | \mathcal{F}_{T_i} \bigr]
+& =
+\int_{-\infty}^{\infty} \Berm(T_{i+1}; x) \frac{1}{\sqrt{2 \pi s_i^2}} \exp \Bigl(- \frac{(x - m_i)^2}{2 s_i^2} \Bigr) dx \nonumber
+\end{align}
+この積分は，各グリッド$r(T_{i+1}) = r_j$における既知の値$\Berm \bigl(T_{i+1}; r(T_{i+1}) \bigr)$を用いて数値的に計算できる．
+これにより，各グリッド$r(T_i) = r_j$における継続価値$\mathrm{C} \bigl(T_i; r(T_i) \bigr)$が求まり，$\Berm \bigl(T_i; r(T_i) \bigr)$が計算できる．
+
+バミューダンのプライシングのためには，まずは最後の行使日$T_l$から始めて後ろ向きに計算を行う．
+$T_l$においては継続価値は0である．
+$i = l, \cdots, 0$について，$T_i$から$T_{i-1}$について後ろ向きに価値を求める．
+これにより，$\Berm \bigl(0; r(0) \bigr)$が各グリッド$r(0) = r_j$について計算できる．
+
+\subsection{Two-factor Hull-White model}
+Hull-Whiteモデルの2次元への拡張を考える．
+\begin{align}
+dr(t)
+& =
+(\theta(t) + u(t) - \alpha r(t)) dt + \delta dW(t), \nonumber \\
+du(t)
+& =
+-\beta u(t) dt + \varepsilon dZ(t), u(0) = 0, \nonumber \\
+dW(t) dZ(t)
+& =
+\rho_0 dt \nonumber
+\end{align}
+
+ここでは，$\alpha \neq \beta$を仮定する．
+
+上記のままでは取り扱いづらいため，以下のように変数変換を行う．
+通常，これはG2++モデルと呼ばれる．
+\begin{align}
+r(t)
+& =
+x(t) + y(t) + \varphi(t), \nonumber \\
+dx(t)
+& =
+-\alpha x(t) dt + \sigma dU(t), x(0) = 0, \nonumber \\
+dy(t)
+& =
+-\beta y(t) dt + \eta dV(t), y(0) = 0, \nonumber \\
+dU(t) dV(t)
+& =
+\rho dt \nonumber
+\end{align}
+
+\hrulefill
+\begin{exercise}
+簡単な計算により，G2++モデルで2ファクターHull-Whileモデルを表すと以下の通り．
+\begin{align}
+u(t)
+& =
+(\alpha - \beta) y(t), \nonumber \\
+\theta(t)
+& =
+\alpha \varphi(t) + \varphi^{\prime}(t), \nonumber \\
+\delta
+& =
+\sqrt{\sigma^2 + \eta^2 + 2 \rho \sigma \eta} \nonumber \\
+\varepsilon
+& =
+(\alpha - \beta) \eta, \nonumber \\
+\rho_0
+& =
+\frac{\rho \sigma + \eta}{\delta} \nonumber
+\end{align}
+
+逆に，2ファクターHull-WhileモデルでG2++モデルを表すと以下の通り．
+\begin{align}
+x(t)
+& =
+r(t) - y(t) - \varphi(t), \nonumber \\
+y(t)
+& =
+u(t) / (\alpha - \beta), \nonumber \\
+\varphi(t)
+& =
+r(0) e^{-\alpha t} + \int_0^t \theta(s) e^{-\alpha (t - s)} ds, \nonumber \\
+\sigma
+& =
+\sqrt{\delta^2 + \eta^2 - 2 \rho_0 \delta \eta} \nonumber \\
+\eta
+& =
+\varepsilon / (\alpha - \beta), \nonumber \\
+\rho
+& =
+\frac{\rho_0 \delta - \eta}{\sigma} \nonumber
+\end{align}
+\end{exercise}
+\hrulefill \\
+
+$t$から$s$まで積分することにより
+\begin{align}
+r(s)
+& =
+x(t) e^{-\alpha (s - t)} + y(t) e^{-\beta (s - t)} \nonumber \\
+& \hspace{10pt}
++ \sigma \int_t^s e^{-\alpha (s - u)} d U(u) + \eta \int_t^s e^{-\beta (s - u)} d V(u)
++ \varphi(s) \nonumber
+\end{align}
+
+さらに，$t$から$T$まで積分することにより
+\begin{align}
+\int_t^T r(s) ds
+& =
+x(t) D_\alpha (t, T) + y(t) D_\beta (t, T) \nonumber \\
+& \hspace{10pt}
++ \sigma \int_t^T D_\alpha (u, T) d U(u) + \eta \int_t^T D_\beta (u, T) d V(u)
++ \int_t^T \varphi(s) ds \nonumber
+\end{align}
+
+よって，期待値を取ることにより
+\begin{align}
+B(t, T)
+& =
+\exp
+\Bigl(
+-x(t) D_\alpha (t, T) - y(t) D_\beta (t, T) + \frac{1}{2} V(t, T) - \int_t^T \varphi(s) ds
+\Bigr) \nonumber \\
+V(t, T)
+& =
+\sigma^2 \int_t^T D_\alpha (u, T)^2 du + \eta^2 \int_t^T D_\beta (u, T)^2 du
++ 2 \rho \sigma \eta \int_t^T D_\alpha (u, T) D_\beta (u, T) du \nonumber
+\end{align}
+
+\hrulefill
+\begin{exercise}
+単に期待値を取ればよい．
+\end{exercise}
+\hrulefill \\
+
+初期イールドを考えると
+\begin{align}
+B(0, T)
+& =
+\exp \Bigl( \frac{1}{2} V(0, T) - \int_0^T \varphi(s) ds \Bigr), \nonumber \\
+f (0, T)
+& =
+- \frac{\partial \log B(0, T)}{\partial T}
+= -\frac{1}{2} \frac{\partial V(0, T)}{\partial T} + \varphi(T) \nonumber
+\end{align}
+
+$\varphi$そのものではなく，$\varphi$の積分は
+\begin{align}
+\int_t^T \varphi(s) ds
+& =
+\log \frac{B(0, t)}{B(0, T)} + \frac{1}{2} (V(0, T) - V(0, t)) \nonumber
+\end{align}
+
+$B$に代入し，以下の結果を得る．
+
+\begin{proposition}
+\begin{align}
+B(t, T)
+& =
+\frac{B(0, T)}{B(0, t)}
+\exp
+\Bigl(
+-x(t) D_\alpha (t, T) - y(t) D_\beta (t, T) - \frac{1}{2} (V(0, T) - V(0, t) - V(t, T))
+\Bigr) \nonumber
+\end{align}
+\end{proposition}
+
+Theorem 2.4より
+\begin{align}
+\BC (t; S, T, K)
+& =
+B(t, T) \mathrm{N}(d_+) - K B(t, S) \mathrm{N}(d_+) \nonumber
+\end{align}
+
+\hrulefill
+\begin{exercise}
+\begin{align}
+v(t, S)
+& =
+\mathrm{Var} \bigl[ x(S) D_\alpha (S, T) + y(S) D_\beta (S, T) | \mathcal{F}_t \bigr] \nonumber \\
+& =
+\sigma^2 D_\alpha (S, T)^2 \int_t^S e^{-2\alpha (S - u)} du
++ \eta^2 D_\beta (S, T)^2 \int_t^S e^{-2\beta (S - u)} du \nonumber \\
+& \hspace{10pt}
++ 2 \rho \sigma \eta D_\alpha (S, T) D_\beta (S, T) \int_t^S e^{-(\alpha + \beta) (S - u)} du \nonumber \\
+& =
+\sigma^2 D_\alpha (S, T)^2 D_{2\alpha} (t, S)
++ \eta^2 D_\beta (S, T)^2 D_{2\beta} (t, S) \nonumber \\
+& \hspace{10pt}
++ 2 \rho \sigma \eta D_\alpha (S, T) D_\beta (S, T) D_{\alpha + \beta} (t, S) \nonumber
+\end{align}
+\end{exercise}
+\hrulefill \\
+
+\end{document}
