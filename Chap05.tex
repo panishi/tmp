@@ -1,0 +1,251 @@
+\documentclass[11pt,a4paper]{jsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[dvipdfmx]{graphicx}
+\numberwithin{equation}{section}
+
+\newtheorem{assumption}{Assumption}[section]
+\newtheorem{proposition}[assumption]{Proposition}
+\newtheorem{theorem}[assumption]{Theorem}
+\newtheorem{exercise}{Exercise}[section]
+
+\begin{document}
+
+\setcounter{section}{4}
+\section{状態空間モデル}
+本章ではまず確率的なモデルの意味合いについて触れ，その一種である状態空間モデルについて定義を行う．
+状態空間モデルの特徴と分類についても説明を行う．
+
+\subsection{確率的なモデル}
+本章から状態空間モデルの詳細を説明する．
+状態空間モデルにおける推定対象は値そのものではなく確率分布であり，「観測値はその分布からたまたま得られた標本である」という考え方をする．
+\begin{center}
+\includegraphics[width=12cm]{img/Figure5_1.png}
+\end{center}
+
+図5.1では2次元グラフ上に，観測値が従う確率分布を重ねて3次元で表示している
+\footnote{
+この図は確率分布に正規分布を仮定して，ライブラリ{\bf dlm}で推定をした結果を描画した．
+}．
+図5.1からも分かるように，推定対象の確率分布は一般に時点ごとに異なる．
+
+\subsection{状態空間モデルの定義}
+\textgt{状態空間モデル}は，互いに関連のある系列的なデータを確率的にとらえるモデルの1つ．
+このモデルでは，直接観測されるデータに加え，直接的には観測されない潜在的な確率変数を導入する．
+この確率変数は\textgt{状態}と呼ばれる．
+状態に関しては，
+
+\centerline{状態は前時点のみと関連がある}
+
+という関係性 (\textgt{マルコフ性}) を仮定する．
+さらに観測値に関して，
+
+\centerline{ある時点の観測値はその時点の状態によってのみ決まる}
+
+と仮定する．
+この仮定は3つの異なる観点で表現できる．
+
+\subsubsection{グラフィカルモデルによる表現}
+1つ目の表現はグラフィカルモデルによるもの．
+\begin{center}
+\includegraphics[width=12cm]{img/Figure5_2.png}
+\end{center}
+
+観測時点は$1, \cdots, T$であり、時点$t$における状態を$x_t$，観測値を$y_t$としている．
+$x_0$は，事前の知見を反映した状態となる．
+状態の要素を$p$種類とすると，$x_t$は$p$次元の列ベクトルとなる．
+$y_t$は，本書では簡単のため単変量の観測値のみを検討対象とする．
+
+図5.2は，\textgt{DAG} (Directed Acyclic Graph; \textgt{有向非巡回グラフ}) と呼ばれる．
+$x_t$が直接隣としかつながっていないことで状態のマルコフ性を，
+$y_t$が直接$x_t$としかつながっていないことである時点の観測値がその時点の状態によってのみ決まることが表現されている．
+
+\subsubsection{確率分布による表現}
+2つ目の表現は確率分布によるもの．
+(5.1) 式の左辺は，$0$～$t − 1$における全ての量が与えられた下での$x_t$の分布を意味しており，
+(5.2) 式の左辺は，$0$～$t − 1$における全ての量と$x_t$が与えられた下での$y_t$の分布を意味している．
+\begin{align}
+p(x_t \mid x_{0:t-1}, y_{1:t-1})
+& =
+p(x_t \mid x_{t-1}), \\
+p(y_t \mid x_{0:t}, y_{1:t-1})
+& =
+p(y_t \mid x_t).
+\end{align}
+
+(5.1) 式は，$x_{t−1}$が与えられると，$x_t$は$x_{0:t−2}$, $y_{1:t−1}$とは独立となることを示している．
+この関係は状態に関する\textgt{条件付き独立}と呼ばれる．
+この性質は時点$t$以外でも成立し，ある時点の状態は一時点前の状態が与えられると，一時点前を含めてそれより前の時点における全ての量 (ただし一時点前の状態は除く) と独立になる．
+\begin{center}
+\includegraphics[width=12cm]{img/Figure5_3.png}
+\end{center}
+
+(5.2) 式は，$x_t$が与えられると，$y_t$は$y_{1:t−1}$, $x_{0:t−1}$とは独立となることを示している．
+この関係は観測値に関する条件付き独立である．
+この性質は時点$t$以外でも成立し，ある時点の観測値はその時点の状態が与えられると，それ以前の時点における全ての量と独立になる．
+\begin{center}
+\includegraphics[width=12cm]{img/Figure5_4.png}
+\end{center}
+
+DAG表現からも想像されるように，これ以外にも条件付き独立の関係は成立している．
+例えば
+\begin{align}
+p(x_t \mid x_{t+1}, y_{1:T}) 
+& =
+p(x_t \mid x_{t+1}, y_{1:t})
+\end{align}
+という関係も成立する．
+(5.3) 式は本書の他の部分でも使用するため，付録Eで導出してある．
+
+\subsubsection{方程式による表現}
+3つ目の表現は方程式によるもの．
+\begin{align}
+x_t
+& =
+f(x_{t-1}, w_t), \\
+y_t
+& =
+h(x_t, v_t).
+\end{align}
+
+$f$と$h$は任意の関数である．
+$w_t$と$v_t$はそれぞれ\textgt{状態雑音} (もしくは\textgt{システム雑音}) と\textgt{観測雑音}と呼ばれる互いに独立な白色雑音であり，
+$w_t$は$p$次元の列ベクトルとなる．
+(5.4) 式は\textgt{状態方程式} (もしくは\textgt{システム方程式}) と呼ばれ，(5.1) 式と同じもの．
+(5.5) 式は\textgt{観測方程式}と呼ばれ，(5.2) 式と同じもの．
+
+状態方程式は，状態に関する確率的な差分方程式となっている．
+状態雑音$w_t$は，状態の時間変化に許容されるひずみ，という積極的な意味をもっている．
+状態方程式により，ひずみを許容する時間的なパタンが，潜在的に規定される．
+
+観測方程式は，状態から観測値を得る際に観測雑音$v_t$を伴うことを示している．
+観測雑音にもモデルの定義を補うような側面があるが，状態雑音に比べると普通の雑音に近い意味合いでとらえられることが多く，少ない方が観測値をより信用できることになる．
+
+\subsubsection{状態空間モデルの同時分布}
+状態空間モデルの同時分布を導く．
+状態空間モデルの同時分布は
+\begin{align}
+p(全ての確率変数)
+& =
+p(x_{0:T}, y_{1:T}) \nonumber
+\end{align}
+なので，次の分布を考える．
+\begin{flalign*}
+p(x_{0:T}, y_{1:T})
+\end{flalign*}
+見やすさを考慮して，これから分解して考える確率変数を前に移動し
+\begin{flushleft}
+\hspace{20pt} $= p(y_{1:T}, x_{0:T})$
+\end{flushleft}
+$y_{1:T}$を分解して書いて
+\begin{flushleft}
+\hspace{20pt} $= p(y_T, y_{1:T-1}, x_{0:T})$
+\end{flushleft}
+確率の乗法定理を適用して
+\begin{flushleft}
+\hspace{20pt} $= p(y_T \mid y_{1:T-1}, x_{0:T}) \, p(y_{1:T-1}, x_{0:T})$
+\end{flushleft}
+見やすさを考慮して，最後の項でこれから分解して考える確率変数を前に移動し
+\begin{flushleft}
+\hspace{20pt} $= p(y_T \mid y_{1:T-1}, x_{0:T}) \, p(x_{0:T}, y_{1:T-1})$
+\end{flushleft}
+$x_{0:T}$を分解して書いて
+\begin{flushleft}
+\hspace{20pt} $= p(y_T \mid y_{1:T-1}, x_{0:T}) \, p(x_T, x_{0:T-1}, y_{1:T-1})$
+\end{flushleft}
+最後の項に確率の乗法定理を適用して
+\begin{flushleft}
+\hspace{20pt} $= p(y_T \mid y_{1:T-1}, x_{0:T}) \, p(x_T \mid x_{0:T-1}, y_{1:T-1}) \, p(x_{0:T-1}, y_{1:T-1})$
+\end{flushleft}
+このようにして，最後の項に確率の乗法定理を繰り返し適用していくと
+\begin{flushleft}
+\hspace{20pt} $= \displaystyle \biggl( \prod_{t=2}^T p(y_t \mid y_{1:t-1}, x_{0:t}) \, p(x_t \mid x_{0:t-1}, y_{1:t-1}) \biggr) p(x_{0:1}, y_1)$
+\end{flushleft}
+見やすさを考慮して，最後の項の確率変数の順番を入れ替えて
+\begin{flushleft}
+\hspace{20pt} $= \displaystyle \biggl( \prod_{t=2}^T p(y_t \mid y_{1:t-1}, x_{0:t}) \, p(x_t \mid x_{0:t-1}, y_{1:t-1}) \biggr) p(y_1, x_{0:1})$
+\end{flushleft}
+再び最後の項に確率の乗法定理を適用していき
+\begin{flushleft}
+\hspace{20pt} $= \displaystyle \biggl( \prod_{t=2}^T p(y_t \mid y_{1:t-1}, x_{0:t}) \, p(x_t \mid x_{0:t-1}, y_{1:t-1}) \biggr) p(y_1 \mid x_{0:1}) \, p(x_1 \mid x_0) \, p(x_0)$
+\end{flushleft}
+見やすさを考慮して，最後の項を一番前にもってきて
+\begin{flushleft}
+\hspace{20pt} $= \displaystyle p(x_0) \biggl( \prod_{t=2}^T p(y_t \mid y_{1:t-1}, x_{0:t}) \, p(x_t \mid x_{0:t-1}, y_{1:t-1}) \biggr) p(y_1 \mid x_{0:1}) \, p(x_1 \mid x_0)$
+\end{flushleft}
+ここで，状態空間モデルの仮定(5.2) 式と(5.1) 式から，
+\begin{flushleft}
+\hspace{20pt} $= \displaystyle p(x_0) \biggl( \prod_{t=2}^T p(y_t \mid x_t) \, p(x_t \mid x_{t-1}) \biggr) p(y_1 \mid x_1) \, p(x_1 \mid x_0)$
+\end{flushleft}
+見やすさを考慮して，まとめて書くと
+\begin{align}
+\hspace{-180pt} 
+= p(x_0) \prod_{t=1}^T p(y_t \mid x_t) \, p(x_t \mid x_{t-1}).
+\end{align}
+
+(5.6) 式から，状態空間モデルは仮定する事前分布$p(x_0)$，観測方程式$p(y_t \mid x_t)$，状態方程式$p(x_t \mid x_{t-1})$により，それらの単純な積の形で決まることが分かる．
+
+\subsection{状態空間モデルの特徴}
+状態空間モデルでは状態という潜在変数を導入したことにより，解釈に都合の良い状態を複数組み合わせて複雑なモデルを構築することが容易になっている．
+具体例は9章で確認する．
+
+状態空間モデルでは観測値間の関連性を観測値同士で直接表現する代わりに，状態を経由して表現する．
+これは，観測値間の関連性を観測値同士で直接表現する\textgt{ARMAモデル} (AutoRegressive Moving Average，\textgt{自己回帰移動平均モデル}) とは対照的．
+ARMA $(p, q)$モデルは時系列分析でよく用いられる確率的なモデルの1つであり，定義は以下の通り．
+\begin{align}
+y_t
+& =
+\sum_{j=1}^p \phi_j y_{t-j} + \sum_{j=1}^q \psi_j \varepsilon_{t-j} + \epsilon_t.
+\end{align}
+$p$, $q$はAR次数・MA次数と呼ばれる非負の整数，$\phi_j$, $\psi_j$はAR係数・MA係数と呼ばれる実数，$\epsilon_t$は白色雑音である．
+ARMA $(1, 0)$モデルはMA項がないためAR $(1)$モデルとも呼ばれる．
+
+$d$階階差をとった時系列を対象にしたARMAモデルは\textgt{ARIMAモデル} (AutoRegressive Integrated Moving Average，\textgt{自己回帰和分移動平均モデル}) であり，ARIMA $(p, d, q)$と表される．
+ARIMAモデルと状態空間モデルは密接な関係があり，状態空間モデルでよく使われるモデルがARIMAモデルとして定義でき，ARIMAモデルも状態空間モデルの一モデルとして定義可能である(「9.5 ARMA モデル」を参照)．
+データの時間的なパタンを確率的にとらえるという観点で両者に本質的な差はないが，その哲学は対照的．
+\begin{itemize}
+\item ARIMAモデルは観測値間の関連性を観測値同士で直接表現するため，問題のモデル化はブラックボックス的なアプローチとなる．
+\item 状態空間モデルは観測値間の関連性を状態経由で間接的に表現し，ある時点のデータと別の時点のデータの関連性を生成する要因を分析者が極力想定し，対応する潜在変数を考慮することで分析を行うため，問題のモデル化はホワイトボックス的なアプローチとなりる．
+\end{itemize}
+どちらが良いかは好みにもよるが，本書ではさらなる柔軟性 (回帰成分・欠測値・非定常過程などの取り扱いが容易) を考慮し，状態空間モデルの適用を推奨する．
+
+\subsection{状態空間モデルの分類}
+「5.2 状態空間モデルの定義」で記載した状態空間モデルについて，演算や確率分布に特段の制約を置かない場合，その状態空間モデルは\textgt{一般状態空間モデル}と呼ばれる．
+一般状態空間モデルは，さらに細分化して分類されることがある．
+\begin{center}
+\includegraphics[width=12cm]{img/Table5_1.png}
+\end{center}
+
+$f$, $h$がともに線形関数であり，$w_t$, $v_t$ がともにガウス分布となる場合，その状態空間モデルは\textgt{線形・ガウス型状態空間モデル}と呼ばれ，
+その状態方程式と観測方程式は以下のように定義される．
+\begin{align}
+x_t
+& =
+G_t x_{t-1} + w_t, && w_t \sim \mathcal{N} (0, W_t), \\
+y_t
+& =
+F_t x_t + v_t, && v_t \sim \mathcal{N} (0, V_t).
+\end{align}
+ここで，$G_t$は$p \times p$の\textgt{状態遷移行列} (もしくは\textgt{状態発展行列}・\textgt{システム行列})，
+$F_t$は$1 \times p$の観測行列，
+$W_t$は$p \times p$の状態雑音の共分散行列，
+$V_t$は観測雑音の分散である．
+また$x_0 \sim N(m_0, C_0)$であり，事前分布における$p$次元の平均ベクトルを$m_0$, $p \times p$の共分散行列を$C_0$とする．
+(5.8), (5.9) 式に関する線形演算の結果は，「2.3 正規分布」でも述べた正規分布の再生性より．全て正規分布に従う．
+(5.8), (5.9) 式と同じものは確率分布でも表現可能であり
+\begin{align}
+p(x_t \mid x_{t-1})
+& =
+\mathcal{N} (G_t x_{t-1}, W_t), \\
+p(y_t \mid x_t)
+& =
+\mathcal{N} (F_t x_t, V_t).
+\end{align}
+ここで，$p(x_0) = \mathcal{N}(m_0, C_0)$である．
+なお，線形・ガウス型状態空間モデルのパラメータをまとめて記載すると，$θ = \{ G_t, F_t, W_t, V_t, m_0, C_0 \}$となる．
+
+線形・ガウス型状態空間モデルは，\textgt{動的線形モデル} (Dynamic Linear Model; \textgt{DLM}) とも呼ばれる．
+DLMは理解や扱いが容易なだけでなく，実用的にも重要．
+これはDLM のみでカバーできる問題が多いことも一因だが，一般状態空間モデルであっても条件付で線形・ガウス型状態空間モデルに落とし込める場合も存在するため．
+このような場合，DLMは最終的な問題を解くために部品として活用されることになる．
+\end{document}
+
