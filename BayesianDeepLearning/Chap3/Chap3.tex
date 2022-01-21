@@ -1,0 +1,619 @@
+\documentclass[11pt,a4paper]{jsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[dvipdfmx]{graphicx}
+\numberwithin{equation}{section}
+
+\newtheorem{assumption}{Assumption}[section]
+\newtheorem{proposition}[assumption]{Proposition}
+\newtheorem{theorem}[assumption]{Theorem}
+\newtheorem{exercise}{Exercise}[section]
+
+\makeatletter
+\newcommand{\subsubsubsection}{\@startsection{paragraph}{4}{\z@}%
+	{1.0\Cvs \@plus.5\Cdp \@minus.2\Cdp}%
+	{.1\Cvs \@plus.3\Cdp}%
+	{\reset@font\sffamily\normalsize}
+}
+\makeatother
+\setcounter{secnumdepth}{4}
+
+\begin{document}
+	
+\setcounter{section}{2}
+
+\section{ベイズ推論の基礎}
+ベイズ推論を用いた機械学習では，モデルパラメータの学習や未観測データの予測，欠損値の予測補間などはすべて確率的な推論計算を用いて実現される．
+本章では最も基本的な概念である確率密度関数，確率質量関数，条件付き分布，周辺分布などを紹介し，グラフを使ったモデルの表現や，指数型分布族などの便利なツールを導入する．
+さらに，シンプルなベイズ線形回帰モデルを題材にして，データの学習や予測，モデル選択といった課題の確率推論によるアプローチの仕方を紹介する．
+章の後半では，他手法（最尤推定など）との関係性に関しても簡単に解説する．
+
+\subsection{確率推論}
+\textbf{ベイズ推論 (Bayesian inference)} では学習や予測，モデル選択などをすべて確率分布上の計算問題として取り扱う．
+ここでは基本的な確率計算や，グラフィカルモデルを使ったモデルの表現方法に関して解説する．
+
+\subsubsection{確率密度関数と確率質量関数}
+$M$次元ベクトル$x = (x_1, \cdots, x_M)^\top \in \mathbb{R}^M$の関数$p(x)$が次の2つの条件を満たすとき，
+$p(x)$を\textbf{確率密度関数 (probability density function)}と呼ぶ．
+\begin{align}
+p(x)
+& \geq
+0,
+\end{align}
+\begin{align}
+\int p(x) dx
+& =
+\int \cdots \int p(x_1, \cdots, x_M) dx_1 \cdots dx_M = 1.
+\end{align}
+
+各要素が離散値である$M$次元ベクトル$x = (x_1, \cdots, x_M)^\top \in \mathbb{R}^M$に対する関数$p(x)$が次の2つの条件を満たすとき，
+$p(x)$を\textbf{確率質量関数 (probability mass function)}と呼ぶ．
+\begin{align}
+p(x)
+& \geq
+0,
+\end{align}
+\begin{align}
+\sum_x p(x) dx
+& =
+\sum_{x_1} \cdots \sum_{x_M} p(x_1, \cdots, x_M) = 1.
+\end{align}
+
+本書では確率密度関数や確率質量関数で決められる$x$の分布を\textbf{確率分布 (probabilistic distribution)}あるいは\textbf{確率モデル (probabilistic model)}と呼ぶことにする．
+2章で解説した線形回帰や一般的な順伝播型ニューラルネットワークから，教師なしの自己符号化器といった高度なモデルまで確率モデルとして取り扱うことができる．
+
+\subsubsection{条件付き分布と周辺分布}
+2つの変数$x$と$y$に対する確率分布$p(x, y)$を\textbf{同時分布 (joint distribution)}と呼ぶ．
+\begin{align}
+p(y)
+& =
+\int p(x, y) dx
+\end{align}
+のように一方の変数$x$を積分により除去する操作を\textbf{周辺化 (joint marginalization)}と呼び，
+結果の確率分布$p(y)$を$y$の\textbf{周辺分布 (marginal distribution)}と呼ぶ
+\footnote{
+離散変数を取り扱う場合は積分$\int$ではなく和$\sum$を用いるが，本書では以降，一般的な説明をする場合は$\int$を用いる．
+}．
+また，同時分布$p(x, y)$において，$y$に対して特定の値が決められたときの$x$の確率分布を\textbf{条件付き分布 (conditional distribution)}と呼び，次のように定義する．
+\begin{align}
+p(x | y)
+& =
+\frac{p(x, y)}{p(y)}.
+\end{align}
+条件付き分布$p(x | y)$は$x$の確率分布であり，$y$はこの分布の特性を決めるパラメータのようなものと解釈できる．
+式(3.5)と式(3.6)から
+\begin{align}
+\int p(x | y) dx
+& =
+\frac{\int p(x, y) dx}{p(y)}
+= \frac{p(y)}{p(y)}
+= 1
+\end{align}
+であり，$p(x, y)$と$p(y)$がともに非負なため，条件付き分布$p(x | y)$は確率分布の要件である式(3.1)および式(3.2)を満たしている．
+
+同時分布を考える際に重要となるのが\textbf{独立 (independence)}の概念であり，同時分布が
+\begin{align}
+p(x, y)
+& =
+p(x) p(y)
+\end{align}
+を満たすとき，$x$と$y$は独立であるという．
+
+ある同時分布が与えられたときに，そこから興味の対象となる条件付き分布や周辺分布を算出することを，
+本書では\textbf{ベイズ推論 (Bayesian inference)}，あるいは単に（確率）\textbf{推論 (inference)}と呼ぶことにする．
+本章では，ベイズ版の線形回帰モデルの学習や予測などを通して具体的な推論計算の方法を解説する．
+4章以降では，解析的な推論計算が行えないような事例を取り扱い，近似推論計算を行う手段を説明する．
+
+\subsubsection{期待値}
+\textbf{期待値 (expectation)}は，確率分布の特徴を定量的に表すことに使われる．
+$x$をベクトルとしたときに，確率分布$p(x)$に対して，関数$f(x)$の期待値$\mathbb{E}_{p(x)} [f(x)]$は次のように計算される．
+\begin{align}
+\mathbb{E}_{p(x)} [f(x)]
+& =
+\int f(x) p(x) dx.
+\end{align}
+文脈から明らかな場合は，$\mathbb{E}_{p(x)} [f(x)]$は$\mathbb{E}_{p} [f(x)]$や$\mathbb{E} [f(x)]$のように省略する場合がある．
+
+2つの確率分布$p(x)$および$q(x)$に対して，次のような期待値を\textbf{KLダイバージェンス (Kullback-Leibler divergence)}と呼ぶ．
+\begin{align}
+D_{\mathrm{KL}} [q(x) || p(x)]
+& =
+- \int q(x) \ln \frac{p(x)}{q(x)} dx \nonumber \\
+& =
+\mathbb{E}_{q(x)} [\ln q(x)] - \mathbb{E}_{q(x)} [\ln p(x)].
+\end{align}
+KLダイバージェンスは任意の確率分布の組に対して$D_{\mathrm{KL}} [q(x) || p(x)] \geq 0$であり，
+等号が成り立つのは2つの確率分布が完全に一致する場合$q(x) = p(x)$に限られる．
+KLダイバージェンスは2つの確率分布の``距離''を表していると解釈されるが，
+一般的には$D_{\mathrm{KL}} [q(x) || p(x)] \neq D_{\mathrm{KL}} [p(x) || q(x)]$であるため，数学的な距離の公理は満たしていない．
+本書では，変分推論法や期待値伝播法といったKLダイバージェンスを基準とした学習アルゴリズムをいくつか導入していく．
+
+\subsubsection{変数変換}
+既知の確率密度関数に対して変数変換を行うことによって新しい確率密度関数を導出する方法を考える．
+このテクニックは，特に5章や6章で紹介する\textbf{再パラメータ化勾配 (reparametrization gradient)}や
+\textbf{正規化流 (normalizing flow)}といった近似理論とための計算技術を理解する際に必要となる．
+
+全単射の関数$f: \mathbb{R}^M \to \mathbb{R}^M$によって変数を$y = f(x)$と一対一に変換する操作を考える．
+既知の確率密度関数を$p_x (x)$とすれば，変換によって得られる$y$の密度関数は
+\begin{align}
+p_y (y)
+& =
+p_x (g(y)) \mid \det (J_g) \mid.
+\end{align}
+と書ける．
+ここで$J_g$は，$f$の逆関数$g$の\textbf{ヤコビ行列 (Jacobian matrix)}
+\begin{align}
+J_g
+& =
+\begin{bmatrix}
+\displaystyle \frac{\partial x_1}{\partial y_1} & \cdots & \displaystyle \frac{\partial x_1}{\partial y_M} \\
+\vdots & \ddots & \vdots \\
+\displaystyle \frac{\partial x_M}{\partial y_1} & \cdots & \displaystyle \frac{\partial x_M}{\partial y_M}
+\end{bmatrix}
+\end{align}
+であり，$\det (J_g)$は$J_g$の行列式である．
+
+例として，\textbf{ガウス分布 (Gaussian distribution)}に従う確率変数を式(2. 24)の双曲線正接関数によって変換し，新しい確率密度関数を作ってみる．
+1次元のガウス分布の定義は
+\begin{align}
+p_x (x)
+& =
+\mathcal{N} (x | \mu, \sigma^2)
+= \frac{1}{\sqrt{2 \pi \sigma^2}} \exp \Bigl( -\frac{(x - \mu)^2}{2 \sigma^2} \Bigr).
+\end{align}
+ガウス分布に従う変数$x$に対して，双曲線正接関数によって変換された新しい変数$y = \mathrm{Tanh} (x)$を考える．
+双曲線正接関数の微分は
+\begin{align}
+\frac{dy}{dx}
+& =
+1 - \mathrm{Tanh} (x)^2.
+\end{align}
+となるので，$y$の密度関数は
+\begin{align}
+p_y (y)
+& =
+\mathcal{N} (\mathrm{Tanh}^{-1} (y) | \mu, \sigma^2) \frac{1}{1 - y^2}.
+\end{align}
+となる．
+
+図3.1にはガウス分布$\mathcal{N} (x | 0.1, 1.0)$に対して変換$y = \mathrm{Tanh} (x)$によって得られる
+(a) 密度関数と，(b) 分布から得られる1万点のサンプルによるヒストグラムを示している．
+
+\subsubsection{グラフィカルモデル}
+\textbf{グラフィカルモデル (graphical model)}は，確率モデルに存在する複数の関係性をノードと矢印を使って表記する記法だ．
+回帰をはじめとした基本的なモデルから複雑な生成モデルまで，さまざまな確率モデルを視覚的に表現できるメリットがある．
+ここでは，\textbf{DAG (directed acyclic graph)}と呼ばれるループ構造をもたない有向グラフによる表現を説明する．
+
+例として，3つの変数$x, y, z$から成り立つ確率モデル
+\begin{align}
+p(x, y, z)
+& =
+p(x | y, z) p(y) p(z).
+\end{align}
+を考える．
+式(3.16)に対応するグラフィカルモデルは図3.2(a)となる．
+基本的にはすべての変数に対してノードが1つずつ用意される．
+$p(x | y, z)$のような条件付き確率の場合は，条件となる変数$y, z$から$x$に向かって矢印を記入することによって，変数間の依存関係を表現する．
+
+別の例として，あるパラメータ$\theta$に依存して$N$個の変数$X = \{ x_1, \cdots, x_N \}$が発生するような確率モデルを考える．
+\begin{align}
+p(X, \theta)
+& =
+p(\theta) p(X | \theta)
+= p(\theta) \prod_{n=1}^N p(x_n | \theta).
+\end{align}
+式(3.17)における$p(X | \theta)$を\textbf{尤度関数 (likelihood function)}，$p(\theta)$をパラメータ$\theta$の\textbf{事前分布 (prior distribution)}と呼ぶ．
+このような場合，図3.2(a)のようなプレート表現を使って変数が複数個含まれていることを明示する．
+
+変数$X = \{ x_1, \cdots, x_N \}$が観測データとして与えられている場合，図3.2(c)のように観測ノードを濃く塗りつぶすことで観測されていることを明示する場合もある．
+
+\subsection{指数型分布族}
+ガウス分布やディリクレ分布など，ベイズ推論で用いられる多くの実用的な確率分布は，\textbf{指数型分布族 (exponential family)}と呼ばれある形式をもつクラスに属する．
+3.2.4説の具体的な推論計算の例にあるように，指数型分布族は確率推論を行う際に計算上いくつかの都合の良い性質をもっている．
+
+\subsubsection{確率分布の例}
+まず具体例として本書で頻繁に登場する確率分布をいくつか紹介する．
+
+1次元の\textbf{ガウス分布 (Gaussian distribution)}または\textbf{正規分布 (normal distribution)}は次のような$x \in \mathbb{R}$の確率密度関数をもつ分布だ．
+\begin{align}
+\mathcal{N} (x | \mu, \sigma^2)
+& =
+\frac{1}{\sqrt{2 \pi \sigma^2}} \exp \Bigl( -\frac{(x - \mu)^2}{2 \sigma^2} \Bigr).
+\end{align}
+$\mu \in \mathbb{R}$は平均パラメータで，$\sigma^2 > 0$は分散パラメータだ．
+
+ガウス分布は次のように$M$次元の多変量に拡張される．
+\begin{align}
+\mathcal{N} (x | \mu, \Sigma)
+& =
+\frac{1}{\sqrt{(2 \pi)^D |\Sigma|}} \exp \Bigl( -\frac{1}{2} (x - \mu)^\top \Sigma^{-1} (x - \mu) \Bigr).
+\end{align}
+$\mu \in \mathbb{R}^M$は$M$次元の平均パラメータであり，$\Sigma$は$M \times M$の\textbf{共分散行列 (covariance matrix)}だ．
+1次元ガウス分布の分散が正であったように，共分散行列$\Sigma$は\textbf{正定値行列 (positive definite matrix)}である必要がある．
+
+\textbf{ベルヌーイ分布 (Bernoulli distribution)}はいわゆるコイン投げの分布だ．
+2値をとる変数$x \in \{ 0, 1 \}$を生成するための確率分布で，単一のパラメータ$\mu \in (0, 1)$によって分布の性質が決まる．
+確率質量関数は，
+\begin{align}
+\mathrm{Bern} (x | \mu)
+& =
+\mu^x (1 - \mu)^{1 - x}
+\end{align}
+と定義される．
+
+\textbf{カテゴリ分布 (categorical distribution)}は，ベルヌーイ分布を任意の$D$値をとるように拡張したもの．
+$s \in \{ 0, 1 \}^D$かつ，各要素$s_d$が$\sum_{d=1}^D s_d = 1$となるような確率変数$s$を生成する分布だ．
+\begin{align}
+\mathrm{Cat} (s | \pi)
+& =
+\prod_{d = 1}^D {\pi_d}^{s_d}.
+\end{align}
+ここで$\pi = (\pi_1, \cdots, \pi_D)^\top$は分布を決める$D$次元のパラメータで，
+$\pi_d \in (0, 1)$かつ$\sum_{d=1}^D \pi_d = 1$を満たすように設定する必要がある．
+
+\textbf{ガンマ分布 (gamma distribution)}は正の実数$\lambda > 0$を生成する確率分布で，次のように定義される．
+\begin{align}
+\mathrm{Gam} (\lambda | a, b)
+& =
+C_G (a, b) \lambda^{a - 1} e^{-b \lambda}, \\
+C_G (a, b)
+& =
+\frac{b^a}{\Gamma(a)}.
+\end{align}
+
+パラメータ$a$および$b$はともに正の実数値として与える必要がある．
+$\Gamma (\cdot)$は\textbf{ガンマ関数 (gamma function)}で，次のように定義される．
+\begin{align}
+\Gamma(x)
+& =
+\int t^{x - 1} e^{-t} dt.
+\end{align}
+ガンマ関数に関する次の性質もよく利用する．
+\begin{align}
+\Gamma(x + 1)
+& =
+x \Gamma(x).
+\end{align}
+
+\subsubsection{ガウス分布の計算例}
+本章で最も使用頻度の高いガウス分布に関して，式(3.5)の条件付き分布や式(3.6)の周辺分布の計算例を示す．
+詳細な導出方法に関しては付録A.1を参照のこと．
+ここでは式(3.19)の多次元のガウス分布を考える．
+\begin{align}
+p(x)
+& =
+p(x_1, x_2)
+= \mathcal{N} (x | \mu, \Sigma).
+\end{align}
+ただし，変数$x \in \mathbb{R}^D$を，$D = D_1 + D_2$とした2つの縦ベクトル
+$x_1 \in \mathbb{R}^{D_1}$, $x_2 \in \mathbb{R}^{D_2}$に分割して考える．
+平均パラメータ$\mu \in \mathbb{R}^D$も同様に$\mu_1 \in \mathbb{R}^{D_1}$, $\mu_2 \in \mathbb{R}^{D_2}$と分割し，
+共分散行列は次のように分割する．
+\begin{align}
+\Sigma
+& =
+\begin{bmatrix}
+\Sigma_{1, 1} & \Sigma_{1, 2} \\
+\Sigma_{2, 1} & \Sigma_{2, 2}
+\end{bmatrix}.
+\end{align}
+
+$\Sigma$は対象行列なので，$\Sigma_{1, 2} = \Sigma_{2, 1}^\top$となる．
+また\textbf{精度行列 (precision matrix)}を$\Lambda = \Sigma^{-1}$とおき，同様に
+\begin{align}
+\Lambda
+& =
+\begin{bmatrix}
+\Lambda_{1, 1} & \Lambda_{1, 2} \\
+\Lambda_{2, 1} & \Lambda_{2, 2}
+\end{bmatrix}
+\end{align}
+とすると，
+\begin{align}
+\Lambda_{1, 1}
+& =
+(\Sigma_{1, 1} - \Sigma_{1, 2} \Sigma_{2, 2}^{-1} \Sigma_{2, 1})^{-1}, \\
+\Lambda_{1, 2}
+& =
+-\Lambda_{1, 1} \Sigma_{1, 2} \Sigma_{2, 2}^{-1}
+\end{align}
+の関係が成り立つ．
+このとき，周辺分布$p(x_1)$は
+\begin{align}
+p(x_1)
+& =
+\mathcal{N} (x_1 | \mu_1, \Sigma_{1, 1})
+\end{align}
+となる．
+また，条件付き分布$p(x_1 | x_2)$は，
+\begin{align}
+p(x_1 | x_2)
+& =
+\mathcal{N} (x_1 | \mu_{1|2}, \Sigma_{1|2}).
+\end{align}
+ただし，
+\begin{align}
+\mu_{1|2}
+& =
+\mu_1 - \Lambda_{1, 1}^{-1} \Lambda_{1, 2} (x_2 - \mu_2), \\
+\Sigma_{1|2}
+& =
+\Lambda_{1|1}^{-1}.
+\end{align}
+
+\subsubsection{指数型分布族}
+具体的に指数型分布族の例や性質を見ていく．
+
+\subsubsubsection{定義}
+\textbf{指数型分布族 (exponential family)}は次のような形式で書ける確率分布の族を指す．
+\begin{align}
+p(x | \eta)
+& =
+h(x) \exp (\eta^\top t(x) - a(\eta)).
+\end{align}
+
+$\eta$を\textbf{自然パラメータ (natural parameter)}，$t(x)$を\textbf{十分統計量 (sufficient statistics)}，
+$h(x)$を\textbf{基底測度 (base measure)}，$a(\eta)$を\textbf{対数分布関数 (log partition function)}と呼ぶ．
+対数分布関数は，式(3.35)の確率分布が積分して1になることを保証するためのものだ．
+\begin{align}
+a(\eta)
+& =
+\ln \int h(x) \exp (\eta^\top t(x)) dx.
+\end{align}
+
+\subsubsubsection{分布の例}
+ガウス分布，ポアソン分布，多項分布，ベルヌーイ分布など多くの分布が指数型分布族として表せることが知られている．
+
+ベルヌーイ分布の確率質量関数はパラメータを$\mu \in (0, 1)$としたとき，
+\begin{align}
+\mathrm{Bern} (x | \mu)
+& =
+\mu^x (1 - \mu)^{1 - x}
+\end{align}
+だが，これを変形すると
+\begin{align}
+\mathrm{Bern} (x | \mu)
+& =
+\exp \bigl( x \ln \mu + (1 - x) \ln (1 - \mu) \bigr) \nonumber \\
+& =
+\exp \Bigl( x \ln \frac{\mu}{1 - \mu} + \ln (1 - \mu) \Bigr)
+\end{align}
+となるため，式(3.35)と対応をとると
+\begin{align}
+h(x)
+& =
+1, \,
+\eta = \ln \frac{\mu}{1 - \mu}, \,
+t(x) = x, \,
+a(\eta) = -\ln (1 - \mu) = \ln (1 + e^\eta).
+\end{align}
+
+\textbf{ポアソン分布 (Poisson distribution)}の場合，確率質量関数は
+\begin{align}
+\mathrm{Poi} (x | \lambda)
+& =
+\frac{\lambda^x}{x!} e^{-\lambda}
+\end{align}
+だが，これを変形すると
+\begin{align}
+\mathrm{Poi} (x | \lambda)
+& =
+\frac{1}{x!} e^{x \ln \lambda - \lambda}
+\end{align}
+となるため，
+\begin{align}
+h(x)
+& =
+\frac{1}{x!}, \,
+\eta = \ln \lambda, \,
+t(x) = x, \,
+a(\eta) = \lambda = e^\eta.
+\end{align}
+と指数型分布族の表現が得られる．
+
+\subsubsubsection{対数分配関数と十分統計量の関係}
+指数型分布族の重要な性質として，対数分配関数$a(\eta)$の$\eta$に関する勾配は十分統計量$t(x)$の期待値になる．
+\begin{align}
+\nabla_{\eta} a(\eta)
+& =
+\nabla_{\eta} \ln \int h(x) \exp (\eta^\top t(x)) dx \nonumber \\
+& =
+\frac{\nabla_{\eta} \int h(x) \exp (\eta^\top t(x)) dx}{\int h(x) \exp (\eta^\top t(x)) dx} \nonumber \\
+& =
+\int t(x) h(x) \exp (\eta^\top t(x) - a(\eta)) dx \nonumber \\
+& =
+\mathbb{E} [t(x)].
+\end{align}
+2階の偏微分は十分統計量の共分散になる．
+\begin{align}
+\frac{\partial^2 a(\eta)}{\partial \eta_i \partial \eta_j}
+& =
+\mathbb{E} [t_i(x) t_j(x)] - \mathbb{E} [t_i(x)] \mathbb{E} [t_j(x)] \nonumber \\
+& =
+\mathrm{Cov} [t_i(x), t_j(x)].
+\end{align}
+
+\subsubsection{分布の共役性}
+指数型分布族の分布の共役性に対する解析的な推論計算の例を見ていく．
+式(3.35)の指数型分布族に対して次のような\textbf{共役事前分布 (conjugate prior)}と呼ばれる分布族が存在する．
+\begin{align}
+p_{\lambda}(\eta)
+& =
+h_c(\eta) \exp ( \eta^\top \lambda_1 - a(\eta) \lambda_2 - a_c(\lambda) ).
+\end{align}
+
+\subsubsubsection{事後分布の解析的計算}
+共役事前分布の重要な性質として，指数型分布族による尤度関数に対して，事後分布も事前分布と同じ形式になる
+\footnote{
+\textbf{共役性 (conjugacy)}は事前分布の性質ではなく，尤度関数と事前分布のペアに対して成り立つ関係性であることには注意を要する．
+}．
+$N$個のデータ$X = \{ x_1, \cdots, x_N \}$を観測したとすると，事後分布は
+\begin{align}
+p(\eta | X)
+& \propto
+p_{\lambda}(\eta) \prod_{n=1}^N p(x_n | \eta) \nonumber \\
+& =
+h_c(\eta) \exp ( \eta^\top \lambda_1 - a(\eta) \lambda_2 - a_c(\lambda) ) \nonumber \\
+& \hspace{12pt}
+\biggl\{ \prod_{n=1}^N h(x_n) \biggr\} \exp \biggl( \eta^\top \sum_{n=1}^N t(x_n) - N a(\eta) \biggr) \nonumber \\
+& \propto
+h_c(\eta) \exp \biggl( \eta^\top \biggl( \lambda_1 + \sum_{n=1}^N t(x_n) \biggr) - a(\eta) (\lambda_2 + N) \biggr)
+\end{align}
+となる．
+式(3.46)の結果は$\eta$に注目すれば式(3.45)と同じ形式になっており，事後分布のパラメータを$\hat{\lambda_1}, \hat{\lambda_2}$とすれば
+\begin{align}
+\hat{\lambda_1}
+& =
+\lambda_1 + \sum_{n=1}^N t(x_n), \,
+\hat{\lambda_2}
+= \lambda_2 + N
+\end{align}
+となっていることがわかる．
+このように，式(3.35)の指数型分布族による尤度関数に対して，式(3.45)の形式の共役事前分布を用いれば，事後分布が解析的に求められる．
+
+\subsubsubsection{予測分布の解析的計算}
+共役性を利用すれば，式(3.46)および(3.47)による事後分布を使って未観測のデータ$x_\ast$の予測分布を次のように解析的に求めることもできる．
+\begin{align}
+p(x_{\ast} | X)
+& =
+\int p(x_{\ast} | \eta) p(\eta | X) d \eta \nonumber \\
+& =
+\int h(x_{\ast}) \exp \bigl( \eta^\top t(x_\ast) - a(\eta) \bigr) h_c (\eta) \exp \bigl( \eta^\top \hat{\lambda_1} - a(\eta) \hat{\lambda_2} - a_c (\hat{\lambda}) \bigr) d \eta \nonumber \\
+& =
+h(x_{\ast}) \frac{\exp \bigl( a_c \bigl( \hat{\lambda_1} + t(x_\ast), \hat{\lambda_2} + 1 \bigr) \bigr)}{\exp \bigl( a_c \bigl( \hat{\lambda_1}, \hat{\lambda_2} \bigr) \bigr)}.
+\end{align}
+結果の確率分布は一般的には指数型分布族にはならない．
+
+\subsubsubsection{例：ベルヌーイ分布のパラメータの推論}
+例として，式(3.39)のベルヌーイ分布の自然パラメータによる表現を使って，パラメータの学習と予測分布の導出を行う
+\footnote{
+自然パラメータによる表現を経由しなくても，直接事後分布や予測分布を計算することもできる．
+}．
+ベルヌーイ分布の共役事前分布は\textbf{ベータ分布 (beta distribution)}だ．
+\begin{align}
+\mathrm{Beta} (\mu | \alpha, \beta)
+& =
+\frac{\Gamma(\alpha + \beta)}{\Gamma(\alpha) \Gamma(\beta)} \mu^{\alpha - 1} (1 - \mu)^{\beta - 1}.
+\end{align}
+これを式(3.45)の表現に直せば
+\begin{align}
+\mathrm{Beta}_{\eta} (\eta | \lambda_1, \lambda_2)
+& =
+\mathrm{Beta} (\mu | \alpha, \beta) \frac{d \mu}{d \eta} \nonumber \\
+& =
+\exp \Bigl( (\alpha - 1) \ln \mu + (\beta - 1) \ln (1 - \mu) + \ln \frac{\Gamma(\alpha + \beta)}{\Gamma(\alpha) \Gamma(\beta)} \Bigr) \frac{e^{\eta}}{(1 + e^{\eta})^2} \nonumber \\
+& =
+\exp \Bigl( \eta \alpha - a(\eta) (\alpha + \beta) + \ln \frac{\Gamma(\alpha + \beta)}{\Gamma(\alpha) \Gamma(\beta)} \Bigr)
+\end{align}
+から，
+\begin{align}
+h_c(\eta)
+& =
+1, \,
+\lambda_1 = \alpha, \,
+\lambda_2 = \alpha + \beta, \,
+a_c(\lambda) = -\ln \frac{\Gamma(\alpha + \beta)}{\Gamma(\alpha) \Gamma(\beta)}
+\end{align}
+と対応付けられる．
+したがって，ベルヌーイ分布に従う確率変数$x_n \in \{ 0, 1 \}$が$N$個観測された場合を考えると，
+式(3.47)の事後分布および式(3.48)の予測分布の結果を用いれば，元のパラメータ表現でそれぞれの分布は
+\begin{align}
+p(\mu | X)
+& =
+\mathrm{Beta}(\mu | \hat{\alpha}, \hat{\beta})
+\end{align}
+および
+\begin{align}
+p(x_\ast | X)
+& =
+\mathrm{Bern} \Bigl( x_\ast \Big| \frac{\hat{\alpha}}{\hat{\alpha} + \hat{\beta}} \Bigr)
+\end{align}
+となる．
+ただし，
+\begin{align}
+\hat{\alpha}
+& =
+\alpha + \sum_{n=1}^N x_n, \\
+\hat{\beta}
+& =
+\beta + N - \sum_{n=1}^N x_n
+\end{align}
+とした．
+
+\subsubsubsection{例：ガウス分布の精度パラメータの推論}
+式(3.18)の1次元のガウス分布の平均値パラメータ$\mu$を固定した場合，\textbf{精度 (precision)}パラメータ$\gamma = \sigma^{-2}$の共役事前分布はガンマ分布で与えられることが知られている．
+ここでも，式(3.47)や式(3.48)の自然パラメータによる計算結果を流用することによって事後分布や予測分布を求める．
+平均値パラメータ$\mu$を固定し，精度パラメータ$\gamma$のみに着目した場合，1次元のガウス分布は
+\begin{align}
+\mathcal{N}(x | \mu, \gamma)
+& =
+\frac{1}{\sqrt{2 \pi}} \exp \Bigl( \gamma \Bigl\{ -\frac{1}{2} (x - \mu)^2 \Bigr\} - \Bigl( -\frac{1}{2} \ln \gamma \Bigr) \Bigr)
+\end{align}
+と書ける．
+式(3.35)の指数型分布族の定義と対応付けることにより，次のような自然パラメータによる表現が得られる．
+\begin{align}
+h(x)
+& =
+\frac{1}{\sqrt{2 \pi}}, \,\,
+\eta = \gamma, \,\,
+t(x) = -\frac{1}{2} (x - \mu)^2, \,\,
+a(\eta) = -\frac{1}{2} \ln \gamma.
+\end{align}
+ガンマ分布は
+\begin{align}
+\mathrm{Gam}(\gamma | a, b)
+& =
+\exp \Bigl( \eta (-b) - \Bigl( -\frac{1}{2} \ln \gamma \Bigr) \{ 2 (a - 1) \} - \{ -\ln C_G(a, b) \} \Bigr)
+\end{align}
+となることから，式(3.45)による共役事前分布と対応付けることにより
+\begin{align}
+h_c(\eta)
+& =
+1, \,\,
+\lambda_1 = -b, \,\,
+\lambda_2 = 2 (a - 1), \nonumber \\
+a_c(\lambda)
+& =
+-\ln C_G(\lambda_2/2 + 1, -\lambda_1)
+\end{align}
+と表現できる．
+したがって，式(3.47)の事後分布の解析計算の結果を用いれば，事後分布はガンマ分布$\mathrm{Gam}(\gamma | \hat{a}, \hat{b})$として
+\begin{align}
+\hat{b}
+& =
+b + \frac{1}{2} \sum_{n=1}^N (x_n - \mu)^2, \,\,
+\hat{a} = a + \frac{N}{2}
+\end{align}
+のように求められる．
+また，式(3.48)の予測分布の結果を用いれば，
+\begin{align}
+p(x_\ast | X)
+& =
+\frac{1}{\sqrt{2 \pi \hat{b}}} \frac{\Gamma(\hat{a} + \frac{1}{2})}{\Gamma(\hat{a})} \Bigl\{ 1 + \frac{1}{2 \hat{b}} (x_\ast - \mu)^2 \Bigr\}^{-\hat{a} - \frac{1}{2}}
+\end{align}
+のように精度パラメータ$\gamma$を周辺化除去した結果が得られる．
+これは\textbf{スチューデントのt分布 (Student's t-distribution)}と呼ばれる分布になる．
+\begin{align}
+p(x_\ast | X)
+& =
+\mathrm{St}((x_\ast | \mu_s, \lambda_s, \nu_s).
+\end{align}
+ただし，
+\begin{align}
+\mu_s
+& =
+\mu, \,\,
+\lambda_s = \frac{\hat{a}}{\hat{b}}, \,\,
+\nu_s = 2 \hat{a}.
+\end{align}
+なお，スチューデントのt分布の平均および分散は
+\begin{align}
+\mathbb{E}_{p(x_\ast | X)} [x_\ast]
+& =
+\mu_s, \\
+\mathbb{V}_{p(x_\ast | X)} [x_\ast]
+& =
+\frac{\nu_s}{\lambda_s (\nu_s - 2)}
+\end{align}
+である．
+
+\end{document}

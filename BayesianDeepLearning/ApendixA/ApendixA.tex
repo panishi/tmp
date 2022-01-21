@@ -1,0 +1,160 @@
+\documentclass[11pt,a4paper]{jsarticle}
+
+\usepackage{amsmath,amssymb,amsthm}
+
+\newtheorem{assumption}{Assumption}[section]
+\newtheorem{proposition}[assumption]{Proposition}
+\newtheorem{theorem}[assumption]{Theorem}
+\newtheorem{exercise}{Exercise}[section]
+
+\renewcommand{\theequation}{A.\arabic{equation}}
+
+\begin{document}
+
+\appendix
+\section{}
+\subsection{ガウス分布の計算}
+ベイズ推論で最もよく用いられる多次元ガウス分布の基本的な計算公式を導く．
+
+\subsubsection{準備}
+まず，公式の導出に必要な行列の公式を用意する．
+次の式は\textbf{ウッドベリーの公式 (Woodbury formula)}と呼ばれるもので，多次元のガウス分布における推論計算などに用いると便利だ．
+\begin{align}
+(A + U B V)^{-1}
+& =
+A^{-1} - A^{-1} U (B^{-1} + V A^{-1} U)^{-1} V A^{-1}.
+\end{align}
+
+行列$P$および$R$が正定値行列の場合，次の等式が成り立つ．
+\begin{align}
+(P^{-1} + B^\top R^{-1} B)^{-1} B^\top R^{-1}
+& =
+P B^\top (B P B^\top + R)^{-1}.
+\end{align}
+（話者注）(A.1)から
+\begin{align}
+(P^{-1} + B^\top R^{-1} B)^{-1}
+& =
+P - P B^\top (B P B^\top + R)^{-1} B P \nonumber
+\end{align}
+より
+\begin{align}
+(P^{-1} + B^\top R^{-1} B)^{-1} B^\top R^{-1}
+& =
+P B^\top R^{-1} - P B^\top (B P B^\top + R)^{-1} B P B^\top R^{-1} \nonumber \\
+& =
+P B^\top \bigl\{ R^{-1} - (B P B^\top + R)^{-1} B P B^\top R^{-1} \bigr\} \nonumber \\
+& =
+P B^\top \bigl\{ R^{-1} - (Q + R)^{-1} Q R^{-1} \bigr\} \nonumber \\
+& =
+P B^\top (Q + R)^{-1} \nonumber \\
+& =
+P B^\top (B P B^\top + R)^{-1}. \nonumber
+\end{align}
+
+次の分割された行列の逆行列の公式は，共分散行列と精度行列の変換に便利だ．
+\begin{align}
+\begin{bmatrix}
+A & B \\
+C & D
+\end{bmatrix}^{-1}
+& =
+\begin{bmatrix}
+M & -MBD^{-1} \\
+-D^{-1}CM & D^{-1} + D^{-1}CMBD
+\end{bmatrix}.
+\end{align}
+ただし，$M = (A - B D^{-1}C)^{-1}$とおいた．
+
+\subsubsection{条件付き分布と周辺分布}
+多次元ガウス分布の同時分布を次のようにおく．
+\begin{align}
+p(x)
+& =
+\mathcal{N} (x | \mu, \Sigma).
+\end{align}
+ただし，
+\begin{align}
+x
+& =
+\begin{bmatrix}
+x_1 \\
+x_2
+\end{bmatrix}, \,
+\mu =
+\begin{bmatrix}
+\mu_1 \\
+\mu_2
+\end{bmatrix}, \,
+\Sigma =
+\begin{bmatrix}
+\Sigma_{1, 1} & \Sigma_{1, 2} \\
+\Sigma_{2, 1} & \Sigma_{2, 2}
+\end{bmatrix}, \,
+\Lambda =
+\begin{bmatrix}
+\Lambda_{1, 1} & \Lambda_{1, 2} \\
+\Lambda_{2, 1} & \Lambda_{2, 2}
+\end{bmatrix}
+\end{align}
+とする．
+ここで，$\Lambda = \Sigma^{-1}$とおいた．
+
+まず，条件付き分布$p(x_1 | x_2)$を求める．
+対数をとり，$x_1$に関して整理をすると
+\begin{align}
+\mathrm{ln} p(x_1 | x_2)
+& =
+\mathrm{ln} \frac{p(x_1, x_2)}{p(x_2)} \nonumber \\
+& =
+\mathrm{ln} p(x_1, x_2) + c \nonumber \\
+& =
+-\frac{1}{2} \Bigl\{ x_1^\top \Lambda_{1, 1} x_1
+- 2 x_1^\top \bigl(\Lambda_{1, 1} \mu_1 - \Lambda_{1, 2} (x_2 - \mu_2) \bigr) \Bigr\} + c
+\end{align}
+となることから，
+\begin{align}
+p(x_1 | x_2)
+& \sim\mathcal{N} (x_1 | \mu_{1|2}, \Lambda_{1|2}^{-1}), \\
+\Lambda_{1|2}
+& =
+\Lambda_{1,1}, \\
+\mu_{1|2}
+& =
+\mu_1 - \Lambda_{1,1}^{-1} \Lambda_{1,2} (x_2 - \mu_2)
+\end{align}
+となる．
+
+次に，周辺分布$p(x_2)$を求める．
+条件付き分布の定義
+\begin{align}
+p(x_1 | x_2)
+& =
+\frac{p(x_1, x_2)}{p(x_2)}
+\end{align}
+から，両辺の対数をとって$\mathrm{ln} p(x_2)$を$x_2$に関して整理をすれば，
+\begin{align}
+\mathrm{ln} p(x_2)
+& =
+\mathrm{ln} p(x_1, x_2) - \mathrm{ln} p(x_1 | x_2) \nonumber \\
+& =
+-\frac{1}{2} \bigl\{ x_2^\top (\Lambda_{2,2} - \Lambda_{2,1} \Lambda_{1,1}^{-1} \Lambda_{1,2}) x_2
+- 2 x_2^\top (\Lambda_{2,2} - \Lambda_{2,1} \Lambda_{1,1}^{-1} \Lambda_{1,2}) \mu_2 \bigr\} + c
+\end{align}
+となるため，
+\begin{align}
+p(x_2)
+& \sim
+\mathcal{N} (x_2 | \mu_2, \Sigma_{2,2})
+\end{align}
+となる．
+ただし，共分散行列に関しては，式(A.1)および式(A.3)の逆行列の関係式を使い，
+\begin{align}
+\Sigma_{2,2}
+& =
+(\Lambda_{2,2} - \Lambda_{2,1} \Lambda_{1,1}^{-1} \Lambda_{1,2})^{-1}
+\end{align}
+としている．
+
+$p(x_2 | x_1)$や$p(x_1)$に関しても同様の結果が得られる．
+\end{document}
