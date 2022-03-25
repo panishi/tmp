@@ -1,0 +1,340 @@
+\documentclass[11pt,a4paper]{jsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[dvipdfmx]{graphicx}
+\numberwithin{equation}{section}
+
+\newtheorem{assumption}{Assumption}[section]
+\newtheorem{proposition}[assumption]{Proposition}
+\newtheorem{theorem}[assumption]{Theorem}
+\newtheorem{exercise}{Exercise}[section]
+
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator*{\argmax}{argmin}
+
+\makeatletter
+\newcommand{\subsubsubsection}{\@startsection{paragraph}{4}{\z@}%
+	{1.0\Cvs \@plus.5\Cdp \@minus.2\Cdp}%
+	{.1\Cvs \@plus.3\Cdp}%
+	{\reset@font\sffamily\normalsize}
+}
+\makeatother
+\setcounter{secnumdepth}{4}
+
+\begin{document}
+	
+\setcounter{section}{5}
+\section{深層生成モデル}
+
+\setcounter{subsection}{1}
+\setcounter{equation}{24}
+\subsection{変分モデル}
+変分推論法を用いた事後分布の近似推論では，近似分布$q$に対してどのような分布のクラスを設計するかがアルゴリズムの性能を左右する．
+特に，以下の点が重要．
+\begin{enumerate}
+\item $q$を使った期待値計算やサンプリングが行いやすいこと
+\item $q$がKLダイバージェンスなどの指標のもとで最適化しやすいこと
+\item $q$が複雑な真の事後分布を精度良く近似できるような柔軟さをもっていること
+\end{enumerate}
+
+4.2.1説では最もシンプルな変分推論法として平均場近似を紹介した．
+平均場近似では，指数型分布族など特性がよく知られた分布を近似として用いるため，1は満たしている．
+事前分布と同じ形式を近似事後分布として選ぶことでELBOの計算を解析的にしているため，2も満たされる．
+一方で，近似する個々の確率変数に対してシンプルな独立性の仮定をおいているため，3の観点では近似能力が低くなる傾向がある．
+変分自己符号化器においても，潜在変数の近似事後分布として単純なガウス分布を仮定するため，分布の近似能力はかなり制限される．
+
+通常のデータの生成過程を表現する確率分布を生成モデルと呼ぶのに対して，
+変分推論法の近似分布$q$に使用する確率分布の族を\textbf{変分モデル (variational model)}と呼ぶ．
+平均場近似や推論ネットワークなども変分モデルの一種と考えられる．
+ここでは，特に上記の要件3を満たす変分モデルとして，\textbf{正規化流 (normalizing flow)}を用いた手法と，
+\textbf{階層変分モデル (hierarchical variational model)}と呼ばれる事後分布の近似法を紹介する．
+変分推論法をより自由度の高いモデルや近似分布が取り扱えるように拡張した\textbf{暗黙的モデル (implicit model)}も解説する．
+なお，本節では変分自己符号器などの深層生成モデルの近似推論を変分モデルの主要な応用対象として考えるが，
+ほとんどの手法は回帰や分類などの教師あり学習モデルのパラメータに対する近似推論にも適用できる．
+
+\subsubsection{正規化流}
+平均場近似に基づく変分自己符号化器における学習の問題点は，式(6.7)で表される近似分布に対角ガウス分布などの単純な分布を仮定してしまっている点だ．
+一般に，深層生成モデルをはじめとした複雑なモデルにおいては，潜在変数の真の事後分布は単純なガウス分布では表現できない複雑さをもつ．
+潜在変数$Z$の真の事後分布を精度よく近似するためには，より複雑な表現力をもつ近似分布を考える必要がある．
+\textbf{正規化流 (normalizing flow)}は，ガウス分布などの簡単な確率分布からのサンプル$z_0$に対して，
+複数回の可逆かつ微分可能な関数$f_1, \cdots, f_K$による変換を適用することによって，より複雑な分布からのサンプル$z_K$を得る手法である．
+
+\subsubsubsection{可逆な関数による変換}
+正規化流は3.1.4節で解説した確率密度関数の変換を用いる．
+可逆で微分可能な関数$f: \mathbb{R}^D \to \mathbb{R}^D$を考える．
+この変換$\hat{z} = f(z)$を用いれば，確率密度関数$q(z)$に対して$q(\hat{z})$は
+\begin{align}
+q(\hat{z})
+& =
+q(z) \Bigl| \mathrm{det} \Bigl(\frac{\partial f^{-1}}{\partial \hat{z}} \Bigr) \Bigr|
+= q(z) \Bigl| \mathrm{det} \Bigl(\frac{\partial f}{\partial z} \Bigr) \Bigr|^{-1}
+\end{align}
+となる．
+この変換を$z_0$から$K$回適用することを考える．
+\begin{align}
+z_K
+& =
+f_K \circ \cdots \circ f_1 (z_0)
+\end{align}
+と変換を重ねたとき，最終的な確率変数$z_K$の密度関数は
+\begin{align}
+q_K(z_K)
+& =
+q_0(z_0) \prod_{k=1}^K \Bigl| \mathrm{det} \Bigl(\frac{\partial f_k}{\partial z_{k-1}} \Bigr) \Bigr|^{-1}
+\end{align}
+と計算できる．
+$K$を増やすことにより計算量は増加するが，より複雑な分布を表現できるようになる．
+
+\subsubsubsection{変換の例}
+具体的な関数$f$をいくつか列挙する．
+\textbf{平面流 (planner flow)}は，関数$f$として次の形をとる．
+\begin{align}
+f(z)
+& =
+z + u h(w^\top z + b).
+\end{align}
+$h$は微分可能な非線形関数で，$\lambda = \{ w \in \mathbb{R}^D, u \in \mathbb{R}^D, b \in \mathbb{R} \}$は変換を決めるパラメータです．
+変分推論法を行う際には$\lambda$は変分パラメータの役割を果たし，ELBOを最大化するように決定される．
+平面流によって得られる分布の密度関数の計算に必要なヤコビ行列は$\mathcal{D}$で計算でき，次のようになる．
+\begin{align}
+\Bigl| \mathrm{det} \Bigl(\frac{\partial f}{\partial z} \Bigr) \Bigr|
+& =
+\bigl| 1 + u^\top \psi(z) \bigr|.
+\end{align}
+ただし$h$の導関数を$\psi(z) = h^\prime ( w^\top z + b ) w$とおいた．
+式(6.28)を$z_0$に対して繰り返し適用することによって得られる密度関数は，超平面$w^\top z + b = 0$に垂直な方向に収縮・拡大を繰り返し，
+最終的に得られる$z_K$は複雑な分布を形成する．
+図6.4の上段では，次元を$D = 2$とし，初期サンプルを$z_0 \sim \mathcal{N} (0, I)$，非線形変換を$h(\cdot) = \mathrm{Tanh}(\cdot)$として，
+複数回の変換を適用した様子を表している．
+
+\textbf{放射状流 (radial flow)}は，基準となる点$\hat{z}$の周辺で確率変数を変換していく方法だ．
+\begin{align}
+f(z)
+& =
+z + \beta h(\alpha, r)(z - \hat{z}).
+\end{align}
+ここで$r = | z - \hat{z} |, h(\alpha, r) = 1 / (\alpha + r)$とおいた．
+パラメータは$\lambda = \{ \hat{z} \in \mathbb{R}^D, \alpha \in \mathbb{R}^+, \beta \in \mathbb{R} \}$である．
+放射状流のヤコビ行列も簡単に計算でき，
+\begin{align}
+\Bigl| \mathrm{det} \Bigl(\frac{\partial f}{\partial z} \Bigr) \Bigr|
+& =
+\bigl\{ 1 + \beta h(\alpha, r) \bigr\}^{D - 1} \bigl\{ 1 + \beta h(\alpha, r) + \beta h^\prime(\alpha, r)r \bigr\}
+\end{align}
+となる．
+初期サンプルを$z_0 \sim \mathcal{N} (0, I)$とした場合の変換の例を図6.4の下段に示した．
+
+\subsubsubsection{変分推論法への応用}
+正規化流は変分推論法と組み合わせることによって，単純な平均場近似による推論よりもはるかに精度の高い事後分布の近似を行える．
+潜在変数の集合$Z$をもつ生成モデル$p(X, Z) = \prod_{n=1}^N p(x_n | z_n) p(z_n)$に対して，式(5.27)を適用した場合のELBOを計算することを考える．
+あるデータ点$x$に対するELBOは
+\begin{align}
+\mathcal{L} [q]
+& =
+\mathbb{E}_{q(z)} \bigl[ \mathrm{ln} \, q(z) - \mathrm{ln} \, p(x, z) \bigr] \nonumber \\
+& =
+\mathbb{E}_{q_0(z_0)} \bigl[ \mathrm{ln} \, q_K(z_k) - \mathrm{ln} \, p(x, z_K) \bigr] \nonumber \\
+& =
+\mathbb{E}_{q_0(z_0)} \bigl[ \mathrm{ln} \, q_0(z_0) \bigr] - \mathbb{E}_{q_0(z_0)} \bigl[ \mathrm{ln} \, p(x, z_K) \bigr] \nonumber \\
+& \hspace{11pt}
+- \mathbb{E}_{q_0(z_0)} \Bigl[ \sum_{k=1}^K \mathrm{ln} \, \Bigl| \mathrm{det} \Bigl(\frac{\partial f_k}{\partial z_{k-1}} \Bigr) \Bigr| \Bigr]
+\end{align}
+となる．
+
+正規化流を自己変分符号化器などに使われている推論ネットワークに適用する際には，初期分布として
+\begin{align}
+q_0(z_0)
+& =
+\mathcal{N} \bigl( z | m(x; \psi), \mathrm{diag} \bigl( v(x; \psi) \bigr) \bigr)
+\end{align}
+としたうえで正規化流による変換を適用する．
+ここで$m(x; \psi)$および$v(x; \psi)$は式(6.8)のようにニューラルネットワークの出力として定義されているとする．
+また，正規化流の各パラメータもニューラルネットワークの出力を用いることができる．
+推論ネットワークにより潜在変数の初期の近似分布$q_0(z_0)$を対角ガウス分布として計算し，
+さらに正規化流によって対角ガウス分布よりも複雑な分布に変換する．
+このように推論ネットワークを使って効率的に潜在変数全体の近似分布を学習し，
+さらに正規化流による$K$回の変換によって，対角ガウス分布のみを使う場合よりも精度の高い近似を行う．
+
+\subsubsubsection{スタイン変分勾配降下法}
+正規化流のほかに，逐次的な変数変換を利用した変分推論法としては\textbf{スタイン変分勾配降下法 (Stein variational gradient descent method)}が知られている．
+この手法では，\textbf{再生核ヒルベルト空間 (reproducing kernel Hilbert space)}上での汎関数微分を利用した勾配降下法を適用することによって，真の事後分布に対するKLダイバージェンスを最小化する．
+近似事後分布は，初期分布から得られる有限個のサンプルによって表現され，最適化によって真の事後分布からのサンプルに変換される．
+正規化流や変分ガウス過程（後述）と異なり，行列式や逆行列の計算が不要であるという利点がある．
+ベイズニューラルネットワークの学習や変分自己符号化器の潜在変数の推論にも利用されている．
+
+\subsubsection{階層変分モデル}
+\textbf{階層変分モデル (hierarchical variational model)}または\textbf{補助潜在変数法 (auxiliary latent variables method)}も変分モデルの一種で，
+近似分布を階層化することにより，複雑な近似分布を表現できるように拡張されている．
+
+\subsubsubsection{近似分布のモデル}
+通常の平均場近似を用いた潜在変数$Z = \{ z_1, \cdots, z_M \}$の近似分布$q_{\mathrm{MF}}$は，$\lambda$を変分パラメータの集合とすれば
+\begin{align}
+q_{\mathrm{MF}} (Z; \lambda)
+& =
+\prod_{m=1}^M q_{\mathrm{MF}} (z_m; \lambda_m)
+\end{align}
+として書ける．
+上記では，$M$個の潜在変数$z_1, \cdots, z_M$の間には独立性が仮定されている．
+階層変分モデルによる近似分布$q_{\mathrm{HVC}}$は次のような形式で近似分布を階層化する．
+\begin{align}
+q_{\mathrm{HVC}} (Z; \xi)
+& =
+\int q(\lambda; \xi) \prod_{m=1}^M q (z_m | \lambda_m) \, d \lambda.
+\end{align}
+ここでは，変分パラメータ$\lambda$に対して\textbf{変分事前分布 (variational prior)}と呼ばれる分布$q(\lambda; \xi)$が与えられている．
+同様に，$q (z_m | \lambda_m)$は\textbf{変分尤度 (variational likelihood)}と呼ばれる．
+$\lambda$に関して周辺化することにより，近似分布はある種の混合分布になる．
+図6.5は，変分事前分布に2次元のガウス分布，変分尤度にポアソン分布を使った場合の変分モデルの例を示す．
+
+\subsubsubsection{変分事前分布の例}
+式(6.35)における変分事後分布$q(\lambda; \xi)$を選択することで得られる湯ような変分モデルをいくつか紹介する．
+シンプルな方法の1つは，4.2.2節で紹介した離散の潜在変数をもつ混合モデルのアイデアを適用することだ．
+$K$を混合要素数，$\pi$を$K$次元のカテゴリ分布のパラメータ，$\xi = \{ \mu_k, \Sigma_k \}_{k=1}^K$を$M$次元ガウス分布のパラメータ集合とすれば
+\begin{align}
+q(\lambda; \xi)
+& =
+\sum_{k=1}^K \pi_k \mathcal{N}(\lambda | \mu_k, \Sigma_k)
+\end{align}
+となる．
+混合モデルを変分事前分布として設定することにより，$Z$の変数間のより詳細な相関を捉えられる．
+図6.5(c)では，$K = 2, M = 2$とした場合の例を示している．
+混合モデルを変分事前分布として利用すれば，$\lambda_1$と$\lambda_2$の間で2つの異なる相関を表現できるようになる．
+
+変分事前分布に正規化流を用いることもできる．
+\begin{align}
+q(\lambda; \xi)
+& =
+q(\lambda_0) \prod_{k=1}^K \Bigl| \mathrm{det} \Bigl(\frac{\partial f_k}{\partial \lambda_{k-1}} \Bigr) \Bigr|^{-1}.
+\end{align}
+各$z_m$が離散カテゴリ値をもつような場合，ソフトマックス関数$\pi (\cdot)$を使って変分尤度を
+$q(z_m | \lambda_m) = \mathrm{Cat}(z_m | \pi(\lambda_m))$と設計することで，
+離散変数の事後分布の近似に正規化流による柔軟性の高い推論手法を適用できる．
+
+変分モデルとして，7章で紹介するガウス過程を用いることもできる．
+この手法は\textbf{変分ガウス過程 (variational Gaussian process)}と呼ばれる．
+\begin{align}
+q_{\mathrm{VGP}}(Z; \theta; \mathcal{V})
+& =
+\int \int \prod_{m=1}^M q \bigl( z_m | F_m(\xi) \bigr)
+\mathcal{N} (F_m; 0, K_{\xi, \xi}) \mathcal{N} (\xi; 0, I) dF d\xi.
+\end{align}
+$\mathcal{V}$は\textbf{変分データ (variational data)}と呼ばれる変分ガウス過程のための疑似的な入出力データを表す．
+変分データと\textbf{共分散関数 (covariance function)}のパラメータ$\theta$が変分ガウス過程における変分パラメータであり，
+これらはELBOに基づいて最適化される．
+ガウス過程に従う関数$F_m$によって，潜在入力$\xi$が$F_m(\xi)$にマッピングされ，さらに変分尤度$q ( z_m | F_m(\xi) )$によって推論したい潜在変数$z_m$の分布が決まる．
+
+これらの変分モデルは，\textbf{ブラックボックス変分推論法 (black box variational inference method)}と呼ばれる手法などを用いてELBOのだ最大化に使用できる．
+ブラックボックス変分推論法はスコア関数指定に基づくELBOの勾配近似手法であり，モデルの設計に依存したアルゴリズムの導出を必要としない．
+
+\subsubsection{非明示的モデルと尤度なし変分推論法}
+
+\subsubsubsection{非明示的モデル}
+次のような潜在変数$Z$と，すべてのデータで共有されるパラメータの集合$\theta$で構成されるような観測データ$X$の階層的な生成モデルを考える．
+\begin{align}
+p(X, Z, \theta)
+& =
+p(\theta) \prod_{n=1}^N p(x_n | z_n, \theta) p(z_n | \theta).
+\end{align}
+さらに，密度関数$p(x_n | z_n, \theta)$は明示的に定義されず，潜在変数$z_n$およびパラメータ$\theta$が与えられたもとでのデータ$x_n$の生成手段だけをもっているとする．
+つまり，ある関数$g$とノイズ$\varepsilon_n \sim p(\varepsilon)$によって
+\begin{align}
+x_n
+& =
+g(\varepsilon_n, z_n, \theta)
+\end{align}
+のように$x_n$が生成されるとすれば，尤度は
+\begin{align}
+P(x_n \in A | z_n, \theta)
+& =
+\int_{x_n \in A} p(\varepsilon_n) d\varepsilon_n
+\end{align}
+となる．
+ここでは，式(6.41)の積分は解析的に実行できず，効率的に尤度計算ができないことを仮定する．
+なお，パラメータの事前分布$p(\theta)$はサンプリングも密度計算も容易にできるとする．
+
+\subsubsubsection{尤度なし変分推論法}
+式(6.39)の非明示的モデルの事後分布は
+\begin{align}
+p(Z, \theta | X)
+& =
+\frac{p(X, Z, \theta)}{p(X)}
+\end{align}
+となるが，これは解析的に計算できないため，ここでも推論法の枠組みで事後分布を近似する．
+非明示的モデルでは一般的に事後分布も複雑になるため，仮定する近似分布も表現力の高いものが望まれる．
+尤度なし変分推論法では，平均場近似で使われていたような単純な指数型分布族の組み合わせではなく，近似分布に仮定する制約を弱め，
+より広いクラスの近似分布を設定できるようにする．
+具体的には，潜在変数の近似分布に対しても変分パラメータを$\psi$とした非明示的な分布を仮定する．
+各潜在変数$z_n$は，変分パラメータ$\psi$をもつ分布から
+\begin{align}
+z_n
+& \sim
+q_\psi (z_n | x_n, \theta)
+\end{align}
+とサンプルを簡単に得られる一方で，変分尤度$q_\psi (z_n | x_n, \theta)$の値自体は必ずしも計算できなくても良いとする．
+明示的な密度関数をもたず，サンプル$z_n$を得られることだけを利用して変分推論法を実行できるようにするのが目的となっている．
+
+式(6.43)の非明示的な変分尤度と，変分パラメータ$\xi$をもつ$\theta$の近似分布$q_\xi (\theta)$を用いて，近似事後分布全体を
+\begin{align}
+q_{\psi, \xi} (Z, \theta | X)
+& =
+q_\xi (\theta) \prod_{n=1}^N q_\psi (z_n | x_n, \theta)
+\end{align}
+とする．
+変分事前分布$q_\xi (\theta)$は，$\theta$のサンプリングも密度計算も容易に実行できるガウス分布などを指定する．
+式(6.44)を用いれば対数周辺尤度の下界は次のように書ける．
+\begin{align}
+\mathcal{L}(\psi, \xi)
+& =
+\mathbb{E}_{q_{\psi, \xi} (Z, \theta | X)} \bigl[ \mathrm{ln} \, p(X, Z, \theta) - \mathrm{ln} \, q_{\psi, \xi} (Z, \theta | X) \bigr] \nonumber \\
+& =
+\mathbb{E}_{q_\xi (\theta)} \bigl[ \mathrm{ln} \, p(\theta) - \mathrm{ln} \, q_\xi (\theta) \bigr] \nonumber \\
+& \hspace{10pt}
++ \sum_{n=1}^N \mathbb{E}_{q_\xi (\theta) q_{\psi} (z_n | x_n, \theta)} \bigl[ \mathrm{ln} \, p(x_n, z_n | \theta) - \mathrm{ln} \, q_{\psi} (z_n | x_n, \theta) \bigr].
+\end{align}
+$p(x_n, z_n | \theta)$および$q_{\psi} (z_n | x_n, \theta)$がともに密度の計算ができない非明示的な分布になっているため，
+$\mathcal{L}(\psi, \xi)$を勾配降下法などで最大化することはできなくなっている．
+これを解決するために，尤度なし変分推論法ではデータの経験分布$q_\mathcal{D} (x_n)$を利用する．
+式(6.45)の下界$\mathcal{L}(\psi, \xi)$に$-\mathrm{ln} \, q_\mathcal{D} (x_n)$を加えると，
+\begin{align}
+\mathcal{L}(\psi, \xi)
+& =
+\mathbb{E}_{q_\xi (\theta)} \bigl[ \mathrm{ln} \, p(\theta) - \mathrm{ln} \, q_\xi (\theta) \bigr] \nonumber \\
+& \hspace{10pt}
++ \sum_{n=1}^N \mathbb{E}_{q_\xi (\theta) q_{\psi} (z_n | x_n, \theta)} \Bigl[ \mathrm{ln} \, \frac{p(x_n, z_n | \theta)}{q_{\psi, \mathcal{D}} (x_n, z_n | \theta)} \Bigr] + c
+\end{align}
+となる．
+新たに定数項$c$が加わっているのは，$-\mathrm{ln} \, q_\mathcal{D} (x_n)$を加えても下界$\mathcal{L}(\psi, \xi)$の変分パラメータに関する最大化問題は変わらないためである．
+尤度なし変分推論法では，式(6.45)における密度計算が不能な$p(x_n, z_n | \theta)$および$q_{\psi} (z_n | x_n, \theta)$を直接扱う代わりに，
+式(6.46)に現れる\textbf{密度比 (density ratio)}の対数
+\begin{align}
+r_{\mathrm{opt.}} (x_n, z_n, \theta; \eta)
+& =
+\mathrm{ln} \, \frac{p(x_n, z_n | \theta)}{q_{\psi, \mathcal{D}} (x_n, z_n | \theta)}
+\end{align}
+を直接指定することによって下界の計算を行う．
+密度比推定器$r(x_n, z_n, \theta; \eta)$の選択としては，$\eta$をパラメータとした微分可能なニューラルネットワークなどの回帰モデルを使用する．
+密度比推定器$r$の学習にはさまざまな方法が考えられるが，例として，次のような
+\textbf{適正スコア規則 (proper scoring rule)}に基づいた損失関数が挙げられる．
+\begin{align}
+J(\eta)
+& =
+\mathbb{E}_{p (x_n, z_n | \theta)} \bigl[ -\mathrm{ln} \, \mathrm{Sig} \bigl( r(x_n, z_n, \theta; \eta) \bigr) \bigr] \nonumber \\
+& \hspace{10pt}
++ \mathbb{E}_{p (x_n, z_n | \theta)} \bigl[ -\mathrm{ln} \, \bigl\{ 1 - \mathrm{Sig} \bigl( r(x_n, z_n, \theta; \eta) \bigr) \bigr\} \bigr].
+\end{align}
+シグモイド関数が分布$p$からのサンプルに対して1を返し，かつ分布$q$からのサンプルに対して0を返すとき，式(6.48)は最小値$J(\eta) = 0$をとる．
+密度比推定器$r(x_n, z_n, \theta; \eta)$の学習は，$x_n$および$z_n$のサンプルのみを使い，式(6.48)の$\eta$の勾配に関する不偏推定量を得ることによって実行できる．
+
+式(6.47)の密度比推定器を用いれば，最大化する目的関数は
+\begin{align}
+\mathcal{L}_r(\psi, \xi)
+& =
+\mathbb{E}_{q_\xi (\theta)} \bigl[ \mathrm{ln} \, p(\theta) - \mathrm{ln} \, q_\xi (\theta) \bigr] \nonumber \\
+& \hspace{10pt}
++ \sum_{n=1}^N \mathbb{E}_{q_\xi (\theta) q_{\psi} (z_n | x_n, \theta)} \bigl[ r(x_n, z_n, \theta; \eta) \bigr]
+\end{align}
+と書ける．
+密度比が微分可能な関数$r(x_n, z_n, \theta; \eta)$に置き換わっているため，再パラメータ化勾配を使って$z_n$および$\theta$をサンプリングし，
+変分パラメータ$\psi$および$\xi$に関する勾配の近似が得られる．
+以上より，尤度なし変分推論法はアルゴリズム6.2のようになる．
+
+\end{document}
